@@ -9,305 +9,111 @@
   <title>Drink Tracker</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     :root {
-      --bg: #141018;
-      --bg2: #1e1a24;
-      --bg3: #2a2533;
-      --accent: #d4a031;
-      --accent-light: #e8c468;
-      --accent2: #c47f17;
-      --text: #f0e8f5;
-      --text-dim: #9a90a8;
-      --danger: #c0392b;
-      --success: #27ae60;
-      --radius: 14px;
+      --bg: #141018; --bg2: #1e1a24; --bg3: #2a2533;
+      --accent: #d4a031; --accent-light: #e8c468; --accent2: #c47f17;
+      --text: #f0e8f5; --text-dim: #9a90a8;
+      --danger: #c0392b; --success: #27ae60; --radius: 14px;
+      --team-gutta: #2980b9; --team-jentene: #e74c8b;
     }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      min-height: 100dvh;
-      max-width: 480px;
-      margin: 0 auto;
-      padding-bottom: 70px;
-      -webkit-tap-highlight-color: transparent;
+      background: var(--bg); color: var(--text);
+      min-height: 100dvh; max-width: 480px; margin: 0 auto;
+      padding-bottom: 70px; -webkit-tap-highlight-color: transparent;
     }
 
-    /* Name modal */
-    .name-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.85);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 500;
-      padding: 20px;
-    }
+    /* Modal */
+    .name-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 500; padding: 20px; }
     .name-modal.hidden { display: none; }
-    .name-modal-box {
-      background: var(--bg2);
-      border: 1px solid var(--bg3);
-      border-radius: var(--radius);
-      padding: 28px 24px;
-      width: 100%;
-      max-width: 340px;
-      text-align: center;
-    }
-    .name-modal-box h2 {
-      font-size: 1.2rem;
-      color: var(--accent-light);
-      margin-bottom: 6px;
-    }
-    .name-modal-box p {
-      font-size: 0.8rem;
-      color: var(--text-dim);
-      margin-bottom: 16px;
-    }
-    .name-modal-box input {
-      width: 100%;
-      padding: 14px;
-      background: var(--bg);
-      border: 1px solid var(--bg3);
-      border-radius: var(--radius);
-      color: var(--text);
-      font-size: 1.1rem;
-      text-align: center;
-      outline: none;
-      margin-bottom: 14px;
-    }
+    .name-modal-box { background: var(--bg2); border: 1px solid var(--bg3); border-radius: var(--radius); padding: 28px 24px; width: 100%; max-width: 340px; text-align: center; }
+    .name-modal-box h2 { font-size: 1.2rem; color: var(--accent-light); margin-bottom: 6px; }
+    .name-modal-box p { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 16px; }
+    .name-modal-box input { width: 100%; padding: 14px; background: var(--bg); border: 1px solid var(--bg3); border-radius: var(--radius); color: var(--text); font-size: 1.1rem; text-align: center; outline: none; margin-bottom: 14px; }
     .name-modal-box input:focus { border-color: var(--accent); }
-    .name-modal-box button {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: var(--radius);
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: var(--bg);
-    }
 
-    .tab-bar {
-      display: flex;
-      position: fixed;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 480px;
-      background: var(--bg2);
-      border-top: 1px solid var(--bg3);
-      z-index: 100;
-      padding-bottom: env(safe-area-inset-bottom, 0);
-    }
-    .tab-bar button {
-      flex: 1;
-      background: none;
-      border: none;
-      color: var(--text-dim);
-      padding: 10px 0 8px;
-      font-size: 0.65rem;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-    }
+    /* Team selector in modal */
+    .team-selector { display: flex; gap: 10px; margin-bottom: 16px; }
+    .team-btn { flex: 1; padding: 14px 8px; border: 2px solid var(--bg3); border-radius: var(--radius); background: var(--bg); color: var(--text-dim); font-size: 0.85rem; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.15s; }
+    .team-btn.selected { color: white; }
+    .team-btn[data-team="gutta"].selected { border-color: var(--team-gutta); background: #2980b922; color: var(--team-gutta); }
+    .team-btn[data-team="jentene"].selected { border-color: var(--team-jentene); background: #e74c8b22; color: var(--team-jentene); }
+
+    .modal-submit { width: 100%; padding: 14px; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 700; cursor: pointer; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--bg); }
+
+    /* Tabs */
+    .tab-bar { display: flex; position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--bg2); border-top: 1px solid var(--bg3); z-index: 100; padding-bottom: env(safe-area-inset-bottom, 0); }
+    .tab-bar button { flex: 1; background: none; border: none; color: var(--text-dim); padding: 10px 0 8px; font-size: 0.6rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
     .tab-bar button.active { color: var(--accent); }
-    .tab-bar button .tab-icon { font-size: 1.4rem; }
+    .tab-bar button .tab-icon { font-size: 1.3rem; }
 
     .page { display: none; padding: 12px 16px; }
     .page.active { display: block; }
 
+    /* Header */
     .quick-header { text-align: center; padding: 16px 0 12px; }
     .quick-header h1 { font-size: 1.3rem; color: var(--accent-light); }
     .quick-header .count { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
     .quick-header .user-name { font-size: 0.7rem; color: var(--accent); margin-top: 4px; cursor: pointer; }
 
-    .type-selector {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .type-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      padding: 12px 4px;
-      background: var(--bg2);
-      border: 2px solid var(--bg3);
-      border-radius: var(--radius);
-      color: var(--text-dim);
-      font-size: 0.65rem;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
+    /* Type buttons */
+    .type-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
+    .type-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px; background: var(--bg2); border: 2px solid var(--bg3); border-radius: var(--radius); color: var(--text-dim); font-size: 0.65rem; cursor: pointer; }
     .type-btn .type-emoji { font-size: 1.6rem; }
     .type-btn.selected { border-color: var(--accent); color: var(--text); background: var(--bg3); }
 
     .quick-form { display: flex; flex-direction: column; gap: 10px; }
-
-    .extra-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      padding: 12px;
-      background: var(--bg2);
-      border: 1px solid var(--bg3);
-      border-radius: var(--radius);
-      color: var(--text-dim);
-      font-size: 0.8rem;
-      cursor: pointer;
-      width: 100%;
-    }
+    .extra-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px; background: var(--bg2); border: 1px solid var(--bg3); border-radius: var(--radius); color: var(--text-dim); font-size: 0.8rem; cursor: pointer; width: 100%; }
     .extra-btn.active { border-color: var(--success); color: var(--success); }
-
-    .save-btn {
-      width: 100%;
-      padding: 16px;
-      border: none;
-      border-radius: var(--radius);
-      font-size: 1.1rem;
-      font-weight: 700;
-      cursor: pointer;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      color: var(--bg);
-      margin-top: 4px;
-    }
+    .save-btn { width: 100%; padding: 16px; border: none; border-radius: var(--radius); font-size: 1.1rem; font-weight: 700; cursor: pointer; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--bg); margin-top: 4px; }
     .save-btn:active { transform: scale(0.97); }
 
     /* List */
-    .filter-row {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 12px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .filter-chip {
-      padding: 6px 14px;
-      background: var(--bg2);
-      border: 1px solid var(--bg3);
-      border-radius: 20px;
-      color: var(--text-dim);
-      font-size: 0.75rem;
-      white-space: nowrap;
-      cursor: pointer;
-    }
+    .filter-row { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .filter-chip { padding: 6px 14px; background: var(--bg2); border: 1px solid var(--bg3); border-radius: 20px; color: var(--text-dim); font-size: 0.75rem; white-space: nowrap; cursor: pointer; }
     .filter-chip.active { border-color: var(--accent); color: var(--accent); background: var(--bg3); }
-
-    .drink-item {
-      display: flex;
-      gap: 12px;
-      padding: 12px;
-      background: var(--bg2);
-      border-radius: var(--radius);
-      margin-bottom: 8px;
-      border: 1px solid var(--bg3);
-      align-items: center;
-    }
-    .drink-type-dot {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.3rem;
-      flex-shrink: 0;
-    }
+    .drink-item { display: flex; gap: 12px; padding: 12px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 8px; border: 1px solid var(--bg3); align-items: center; }
+    .drink-type-dot { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
     .drink-item-info { flex: 1; min-width: 0; }
-    .drink-item-name { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+    .drink-item-name { font-size: 0.95rem; font-weight: 600; }
     .drink-item-right { text-align: right; flex-shrink: 0; }
     .drink-item-date { font-size: 0.65rem; color: var(--text-dim); }
-
     .drink-item.expanded .drink-detail { display: block; }
     .drink-detail { display: none; width: 100%; margin-top: 8px; }
-    .drink-detail-map { width: 100%; height: 80px; border-radius: 8px; margin-top: 6px; }
-    .drink-item-actions { display: flex; gap: 6px; margin-top: 6px; }
     .drink-item-actions button { font-size: 0.7rem; padding: 4px 10px; border: none; border-radius: 6px; cursor: pointer; }
     .act-del { background: transparent; color: var(--danger); }
 
-    /* Stats & Leaderboard */
+    /* Stats */
     .section-header { text-align: center; padding: 16px 0 12px; }
     .section-header h2 { font-size: 1.2rem; color: var(--accent-light); }
-
-    .stat-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .stat-card {
-      background: var(--bg2);
-      border-radius: var(--radius);
-      padding: 14px;
-      text-align: center;
-      border: 1px solid var(--bg3);
-    }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .stat-card { background: var(--bg2); border-radius: var(--radius); padding: 14px; text-align: center; border: 1px solid var(--bg3); }
     .stat-card .sv { font-size: 1.7rem; font-weight: 700; color: var(--accent); }
     .stat-card .sl { font-size: 0.7rem; color: var(--text-dim); margin-top: 3px; text-transform: uppercase; }
-
     .stat-section { margin-bottom: 20px; }
-    .stat-section h3 {
-      font-size: 0.8rem;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      margin-bottom: 8px;
-      letter-spacing: 0.5px;
-    }
-
+    .stat-section h3 { font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
     .stat-bar-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
     .stat-bar-label { font-size: 0.8rem; min-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .stat-bar-track { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
     .stat-bar-fill { height: 100%; border-radius: 3px; }
     .stat-bar-count { font-size: 0.75rem; color: var(--text-dim); min-width: 20px; text-align: right; }
-
     .type-breakdown { display: flex; gap: 8px; margin-bottom: 20px; }
-    .type-stat {
-      flex: 1; text-align: center; padding: 10px 4px;
-      background: var(--bg2); border-radius: var(--radius); border: 1px solid var(--bg3);
-    }
+    .type-stat { flex: 1; text-align: center; padding: 10px 4px; background: var(--bg2); border-radius: var(--radius); border: 1px solid var(--bg3); }
     .type-stat .ts-emoji { font-size: 1.3rem; }
     .type-stat .ts-count { font-size: 1.2rem; font-weight: 700; margin-top: 2px; }
     .type-stat .ts-label { font-size: 0.6rem; color: var(--text-dim); }
-
     .timeline { display: flex; align-items: flex-end; gap: 3px; height: 80px; margin-bottom: 20px; padding: 0 2px; }
     .timeline-bar { flex: 1; min-width: 8px; border-radius: 3px 3px 0 0; position: relative; }
-    .timeline-bar .tl-label {
-      position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
-      font-size: 0.55rem; color: var(--text-dim); white-space: nowrap;
-    }
+    .timeline-bar .tl-label { position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); font-size: 0.55rem; color: var(--text-dim); white-space: nowrap; }
     .timeline-wrap { margin-bottom: 30px; }
 
     /* Leaderboard */
-    .lb-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      background: var(--bg2);
-      border-radius: var(--radius);
-      margin-bottom: 8px;
-      border: 1px solid var(--bg3);
-    }
-    .lb-rank {
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 0.9rem;
-      flex-shrink: 0;
-    }
+    .lb-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 8px; border: 1px solid var(--bg3); }
+    .lb-rank { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
     .lb-rank.gold { background: #d4a03133; color: var(--accent); }
     .lb-rank.silver { background: #c0c0c033; color: #c0c0c0; }
     .lb-rank.bronze { background: #cd7f3233; color: #cd7f32; }
@@ -316,75 +122,56 @@
     .lb-name { font-size: 0.95rem; font-weight: 600; }
     .lb-types { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
     .lb-count { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
-    .lb-today-badge {
-      display: inline-block;
-      background: var(--accent);
-      color: var(--bg);
-      font-size: 0.6rem;
-      font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 8px;
-      margin-left: 6px;
-    }
+    .lb-today-badge { display: inline-block; background: var(--accent); color: var(--bg); font-size: 0.6rem; font-weight: 700; padding: 2px 6px; border-radius: 8px; margin-left: 6px; }
+    .lb-team-badge { display: inline-block; font-size: 0.55rem; font-weight: 700; padding: 2px 6px; border-radius: 8px; margin-left: 4px; }
+
+    /* Alliance */
+    .alliance-battle { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; }
+    .alliance-team { flex: 1; text-align: center; padding: 16px 8px; border-radius: var(--radius); border: 2px solid; }
+    .alliance-team .at-name { font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; }
+    .alliance-team .at-count { font-size: 2.2rem; font-weight: 800; }
+    .alliance-team .at-members { font-size: 0.6rem; color: var(--text-dim); margin-top: 4px; }
+    .alliance-vs { font-size: 1.2rem; font-weight: 800; color: var(--text-dim); }
+
+    /* Map */
+    #drinkMap { width: 100%; height: calc(100vh - 140px); height: calc(100dvh - 140px); border-radius: var(--radius); }
+    .leaflet-popup-content { color: #333; }
 
     .empty-state { text-align: center; padding: 40px 20px; color: var(--text-dim); }
     .empty-state .e-icon { font-size: 3rem; margin-bottom: 10px; }
 
     /* Settings */
-    .settings-section {
-      background: var(--bg2);
-      border-radius: var(--radius);
-      padding: 16px;
-      margin-bottom: 14px;
-      border: 1px solid var(--bg3);
-    }
+    .settings-section { background: var(--bg2); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; border: 1px solid var(--bg3); }
     .settings-section h3 { font-size: 0.85rem; color: var(--accent-light); margin-bottom: 10px; }
     .settings-section p { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 10px; line-height: 1.4; }
-    .settings-input {
-      width: 100%; padding: 12px;
-      background: var(--bg); border: 1px solid var(--bg3); border-radius: var(--radius);
-      color: var(--text); font-size: 0.85rem; outline: none; margin-bottom: 10px;
-    }
-    .settings-input:focus { border-color: var(--accent); }
-    .settings-btn {
-      padding: 12px; border: none; border-radius: var(--radius);
-      font-size: 0.85rem; font-weight: 600; cursor: pointer; width: 100%;
-    }
+    .settings-input { width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--bg3); border-radius: var(--radius); color: var(--text); font-size: 0.85rem; outline: none; margin-bottom: 10px; }
+    .settings-btn { padding: 12px; border: none; border-radius: var(--radius); font-size: 0.85rem; font-weight: 600; cursor: pointer; width: 100%; }
     .settings-btn:active { transform: scale(0.97); }
     .settings-btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--bg); }
     .settings-btn-outline { background: transparent; border: 1px solid var(--bg3); color: var(--text-dim); margin-top: 8px; }
-
-    .sync-status {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px; border-radius: var(--radius); font-size: 0.8rem; margin-bottom: 10px;
-    }
+    .sync-status { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: var(--radius); font-size: 0.8rem; margin-bottom: 10px; }
     .sync-status.connected { background: #27ae6022; color: var(--success); border: 1px solid #27ae6044; }
     .sync-status.disconnected { background: #c0392b22; color: #e74c3c; border: 1px solid #c0392b44; }
     .sync-dot { width: 8px; height: 8px; border-radius: 50%; }
     .sync-status.connected .sync-dot { background: var(--success); }
     .sync-status.disconnected .sync-dot { background: #e74c3c; }
-
-    .toast {
-      position: fixed; bottom: 80px; left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: var(--success); color: white;
-      padding: 10px 22px; border-radius: 30px;
-      font-size: 0.85rem; font-weight: 600;
-      transition: transform 0.3s ease;
-      z-index: 200; white-space: nowrap;
-    }
+    .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--success); color: white; padding: 10px 22px; border-radius: 30px; font-size: 0.85rem; font-weight: 600; transition: transform 0.3s ease; z-index: 200; white-space: nowrap; }
     .toast.show { transform: translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
 
-<!-- NAME MODAL -->
+<!-- NAME + TEAM MODAL -->
 <div class="name-modal hidden" id="nameModal">
   <div class="name-modal-box">
     <h2>Hei!</h2>
-    <p>Skriv inn navnet ditt for gjengen</p>
+    <p>Skriv inn navnet ditt og velg lag</p>
     <input type="text" id="nameInput" placeholder="Ditt navn" autocomplete="off">
-    <button id="nameSubmit">Start</button>
+    <div class="team-selector">
+      <button class="team-btn" data-team="gutta">Gutta</button>
+      <button class="team-btn" data-team="jentene">Jentene</button>
+    </div>
+    <button class="modal-submit" id="nameSubmit">Start</button>
   </div>
 </div>
 
@@ -395,30 +182,15 @@
     <div class="count" id="totalCount">Stay hydrated queen</div>
     <div class="user-name" id="userName" onclick="changeName()"></div>
   </div>
-
   <div class="type-selector">
-    <button class="type-btn selected" data-type="beer">
-      <span class="type-emoji">&#127866;</span><span>Pils</span>
-    </button>
-    <button class="type-btn" data-type="wine">
-      <span class="type-emoji">&#127863;</span><span>Vin</span>
-    </button>
-    <button class="type-btn" data-type="cava">
-      <span class="type-emoji">&#127870;</span><span>Bobler</span>
-    </button>
-    <button class="type-btn" data-type="drink">
-      <span class="type-emoji">&#127864;</span><span>Drink</span>
-    </button>
-    <button class="type-btn" data-type="other">
-      <span class="type-emoji">&#129346;</span><span>Annet</span>
-    </button>
+    <button class="type-btn selected" data-type="beer"><span class="type-emoji">&#127866;</span><span>Pils</span></button>
+    <button class="type-btn" data-type="wine"><span class="type-emoji">&#127863;</span><span>Vin</span></button>
+    <button class="type-btn" data-type="cava"><span class="type-emoji">&#127870;</span><span>Bobler</span></button>
+    <button class="type-btn" data-type="drink"><span class="type-emoji">&#127864;</span><span>Drink</span></button>
+    <button class="type-btn" data-type="other"><span class="type-emoji">&#129346;</span><span>Annet</span></button>
   </div>
-
   <div class="quick-form">
-    <button class="extra-btn" id="locBtn" type="button">
-      <span class="extra-icon">&#128205;</span>
-      <span id="locText">Posisjon</span>
-    </button>
+    <button class="extra-btn" id="locBtn" type="button"><span>&#128205;</span><span id="locText">Posisjon</span></button>
     <button class="save-btn" id="saveBtn">Registrer</button>
   </div>
 </div>
@@ -436,42 +208,35 @@
   <div id="drinkList"></div>
 </div>
 
-<!-- LEADERBOARD -->
-<div class="page" id="page-board">
-  <div class="section-header"><h2>Leaderboard</h2></div>
-  <div id="boardContent">
-    <div class="empty-state">
-      <div class="e-icon">&#127942;</div>
-      <div>Koble til Google Sheet for leaderboard</div>
-    </div>
-  </div>
-</div>
-
 <!-- STATS -->
 <div class="page" id="page-stats">
   <div class="section-header"><h2>Statistikk</h2></div>
   <div id="statsContent"></div>
 </div>
 
+<!-- BOARD (leaderboard + alliance) -->
+<div class="page" id="page-board">
+  <div class="section-header"><h2>Leaderboard</h2></div>
+  <div id="boardContent"></div>
+</div>
+
+<!-- MAP -->
+<div class="page" id="page-map">
+  <div class="section-header"><h2>Kart</h2></div>
+  <div id="drinkMap"></div>
+</div>
+
 <!-- SETTINGS -->
 <div class="page" id="page-settings">
   <div class="section-header"><h2>Innstillinger</h2></div>
   <div class="settings-section">
-    <h3>Google Sheets Sync</h3>
-    <div class="sync-status disconnected" id="syncStatus">
-      <span class="sync-dot"></span>
-      <span id="syncStatusText">Ikke koblet til</span>
-    </div>
-    <p>Lim inn URL fra Google Apps Script. Alle i gjengen bruker samme URL.</p>
-    <input class="settings-input" type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/...">
-    <button class="settings-btn settings-btn-primary" id="saveUrlBtn">Lagre URL</button>
-    <button class="settings-btn settings-btn-outline" id="syncNowBtn">Synk nå</button>
-  </div>
-  <div class="settings-section">
     <h3>Bruker</h3>
-    <p>Du er logget inn som:</p>
     <input class="settings-input" type="text" id="settingsName" placeholder="Ditt navn">
-    <button class="settings-btn settings-btn-outline" id="saveNameBtn">Endre navn</button>
+    <div class="team-selector" id="settingsTeam">
+      <button class="team-btn" data-team="gutta">Gutta</button>
+      <button class="team-btn" data-team="jentene">Jentene</button>
+    </div>
+    <button class="settings-btn settings-btn-outline" id="saveNameBtn">Lagre endringer</button>
   </div>
   <div class="settings-section">
     <h3>Data</h3>
@@ -482,711 +247,317 @@
 
 <!-- Tab bar -->
 <nav class="tab-bar">
-  <button class="active" data-page="add">
-    <span class="tab-icon">&#10133;</span>Logg
-  </button>
-  <button data-page="list">
-    <span class="tab-icon">&#128203;</span>Historikk
-  </button>
-  <button data-page="stats">
-    <span class="tab-icon">&#128200;</span>Stats
-  </button>
-  <button data-page="board">
-    <span class="tab-icon">&#127942;</span>Board
-  </button>
-  <button data-page="settings">
-    <span class="tab-icon">&#9881;</span>Sync
-  </button>
+  <button class="active" data-page="add"><span class="tab-icon">&#10133;</span>Logg</button>
+  <button data-page="list"><span class="tab-icon">&#128203;</span>Logg</button>
+  <button data-page="stats"><span class="tab-icon">&#128200;</span>Stats</button>
+  <button data-page="board"><span class="tab-icon">&#127942;</span>Board</button>
+  <button data-page="map"><span class="tab-icon">&#127758;</span>Kart</button>
+  <button data-page="settings"><span class="tab-icon">&#9881;</span>Meg</button>
 </nav>
 
 <div class="toast" id="toast"></div>
 
 <script>
 // ============ IndexedDB ============
-const DB_NAME = 'DrinkTrackerDB';
-const DB_VERSION = 1;
-const STORE = 'drinks';
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        const store = db.createObjectStore(STORE, { keyPath: 'id' });
-        store.createIndex('date', 'date');
-        store.createIndex('type', 'type');
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function getAll() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readonly');
-    tx.objectStore(STORE).getAll().onsuccess = e => resolve(e.target.result);
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function saveDrink(d) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).put(d);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function removeDrink(id) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).delete(id);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function clearAllDrinks() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite');
-    tx.objectStore(STORE).clear();
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
+const DB_NAME='DrinkTrackerDB',DB_VERSION=1,STORE='drinks';
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(STORE)){const s=db.createObjectStore(STORE,{keyPath:'id'});s.createIndex('date','date');s.createIndex('type','type')}};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function getAll(){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readonly');tx.objectStore(STORE).getAll().onsuccess=e=>res(e.target.result);tx.onerror=()=>rej(tx.error)})}
+async function saveDrink(d){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(d);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
+async function removeDrink(id){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(id);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
+async function clearAllDrinks(){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear();tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
 
 // ============ Constants ============
-const TYPE_META = {
-  beer:  { emoji: '&#127866;', label: 'Pils',   color: '#d4a031' },
-  wine:  { emoji: '&#127863;', label: 'Vin',    color: '#8b2252' },
-  cava:  { emoji: '&#127870;', label: 'Bobler', color: '#e8c468' },
-  drink: { emoji: '&#127864;', label: 'Drink',  color: '#2980b9' },
-  other: { emoji: '&#129346;', label: 'Annet',  color: '#7f8c8d' }
-};
+const TYPE_META={beer:{emoji:'&#127866;',label:'Pils',color:'#d4a031'},wine:{emoji:'&#127863;',label:'Vin',color:'#8b2252'},cava:{emoji:'&#127870;',label:'Bobler',color:'#e8c468'},drink:{emoji:'&#127864;',label:'Drink',color:'#2980b9'},other:{emoji:'&#129346;',label:'Annet',color:'#7f8c8d'}};
+const SHEET_URL='https://script.google.com/macros/s/AKfycbwXLXC-8BRzvxzmr8mPj1BEYm7r3xfoWgS-3NaxvB8ryy9yNPMJfsk8GWfOV9HFMhJCdw/exec';
+function getSheetUrl(){return SHEET_URL}
 
-// ============ User / Name ============
-function getUserName() { return localStorage.getItem('userName') || ''; }
-function setUserName(n) { localStorage.setItem('userName', n); }
+// ============ User ============
+function getUserName(){return localStorage.getItem('userName')||''}
+function setUserName(n){localStorage.setItem('userName',n)}
+function getUserTeam(){return localStorage.getItem('userTeam')||''}
+function setUserTeam(t){localStorage.setItem('userTeam',t)}
 
-function checkName() {
-  const name = getUserName();
-  if (!name) {
-    document.getElementById('nameModal').classList.remove('hidden');
-  } else {
+let selectedTeam='';
+document.querySelectorAll('#nameModal .team-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('#nameModal .team-btn').forEach(x=>x.classList.remove('selected'));
+    b.classList.add('selected');
+    selectedTeam=b.dataset.team;
+  });
+});
+
+function checkName(){
+  const name=getUserName(),team=getUserTeam();
+  if(!name||!team){document.getElementById('nameModal').classList.remove('hidden')}
+  else{
     document.getElementById('nameModal').classList.add('hidden');
-    document.getElementById('userName').textContent = name;
-    document.getElementById('settingsName').value = name;
+    const teamLabel=team==='gutta'?'Gutta':'Jentene';
+    document.getElementById('userName').textContent=`${name} (${teamLabel})`;
+    document.getElementById('settingsName').value=name;
+    document.querySelectorAll('#settingsTeam .team-btn').forEach(b=>b.classList.toggle('selected',b.dataset.team===team));
   }
 }
 
-document.getElementById('nameSubmit').addEventListener('click', () => {
-  const name = document.getElementById('nameInput').value.trim();
-  if (!name) return;
-  setUserName(name);
-  checkName();
+document.getElementById('nameSubmit').addEventListener('click',()=>{
+  const name=document.getElementById('nameInput').value.trim();
+  if(!name){showToast('Skriv inn navn!');return}
+  if(!selectedTeam){showToast('Velg lag!');return}
+  setUserName(name);setUserTeam(selectedTeam);checkName();
 });
+document.getElementById('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('nameSubmit').click()});
 
-document.getElementById('nameInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('nameSubmit').click();
-});
-
-function changeName() {
-  const name = prompt('Endre navn:', getUserName());
-  if (name && name.trim()) {
-    setUserName(name.trim());
-    checkName();
-  }
+function changeName(){
+  document.getElementById('nameInput').value=getUserName();
+  selectedTeam=getUserTeam();
+  document.querySelectorAll('#nameModal .team-btn').forEach(b=>b.classList.toggle('selected',b.dataset.team===selectedTeam));
+  document.getElementById('nameModal').classList.remove('hidden');
 }
 
-document.getElementById('saveNameBtn').addEventListener('click', () => {
-  const name = document.getElementById('settingsName').value.trim();
-  if (!name) return;
+document.getElementById('saveNameBtn').addEventListener('click',()=>{
+  const name=document.getElementById('settingsName').value.trim();
+  if(!name)return;
   setUserName(name);
-  checkName();
-  showToast('Navn endret!');
+  const sel=document.querySelector('#settingsTeam .team-btn.selected');
+  if(sel)setUserTeam(sel.dataset.team);
+  checkName();showToast('Lagret!');
+});
+document.querySelectorAll('#settingsTeam .team-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('#settingsTeam .team-btn').forEach(x=>x.classList.remove('selected'));
+    b.classList.add('selected');
+  });
 });
 
 // ============ State ============
-let currentType = 'beer';
-let currentLocation = null;
-let allRemoteDrinks = []; // cached leaderboard data
+let currentType='beer',currentLocation=null,allRemoteDrinks=[],mapInstance=null;
 
-// ============ Tab Navigation ============
-document.querySelectorAll('.tab-bar button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const page = btn.dataset.page;
-    document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+// ============ Tabs ============
+document.querySelectorAll('.tab-bar button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const page=btn.dataset.page;
+    document.querySelectorAll('.tab-bar button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('page-' + page).classList.add('active');
-    if (page === 'list') renderList();
-    if (page === 'stats') renderStats();
-    if (page === 'board') renderLeaderboard();
-    if (page === 'settings') loadSettings();
+    document.getElementById('page-'+page).classList.add('active');
+    if(page==='list')renderList();
+    if(page==='stats')renderStats();
+    if(page==='board')renderLeaderboard();
+    if(page==='map')renderMap();
+    if(page==='settings')checkName();
   });
 });
 
 // ============ Type Selector ============
-document.querySelectorAll('.type-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    currentType = btn.dataset.type;
+document.querySelectorAll('.type-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');currentType=btn.dataset.type;
   });
 });
 
 // ============ Location ============
-document.getElementById('locBtn').addEventListener('click', () => {
-  if (currentLocation) {
-    currentLocation = null;
-    document.getElementById('locText').textContent = 'Posisjon';
-    document.getElementById('locBtn').classList.remove('active');
-    return;
-  }
-  if (!navigator.geolocation) { showToast('GPS ikke tilgjengelig'); return; }
-  document.getElementById('locText').textContent = 'Henter...';
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      document.getElementById('locText').textContent = 'Lagret';
-      document.getElementById('locBtn').classList.add('active');
-    },
-    () => {
-      document.getElementById('locText').textContent = 'Feilet';
-      setTimeout(() => { document.getElementById('locText').textContent = 'Posisjon'; }, 2000);
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
+document.getElementById('locBtn').addEventListener('click',()=>{
+  if(currentLocation){currentLocation=null;document.getElementById('locText').textContent='Posisjon';document.getElementById('locBtn').classList.remove('active');return}
+  if(!navigator.geolocation){showToast('GPS ikke tilgjengelig');return}
+  document.getElementById('locText').textContent='Henter...';
+  navigator.geolocation.getCurrentPosition(p=>{currentLocation={lat:p.coords.latitude,lng:p.coords.longitude};document.getElementById('locText').textContent='Lagret';document.getElementById('locBtn').classList.add('active')},()=>{document.getElementById('locText').textContent='Feilet';setTimeout(()=>document.getElementById('locText').textContent='Posisjon',2000)},{enableHighAccuracy:true,timeout:10000});
 });
 
 // ============ Save ============
-document.getElementById('saveBtn').addEventListener('click', async () => {
-  const user = getUserName();
-  if (!user) { document.getElementById('nameModal').classList.remove('hidden'); return; }
-
-  const meta = TYPE_META[currentType] || TYPE_META.other;
-  const drink = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-    name: meta.label,
-    type: currentType,
-    location: currentLocation,
-    date: new Date().toISOString(),
-    user: user,
-    synced: false
-  };
-
-  await saveDrink(drink);
-  showToast('Registrert!');
-  resetForm();
-  updateCount();
-  syncToSheet();
+document.getElementById('saveBtn').addEventListener('click',async()=>{
+  const user=getUserName(),team=getUserTeam();
+  if(!user||!team){document.getElementById('nameModal').classList.remove('hidden');return}
+  const meta=TYPE_META[currentType]||TYPE_META.other;
+  const drink={id:Date.now().toString(36)+Math.random().toString(36).slice(2),name:meta.label,type:currentType,location:currentLocation,date:new Date().toISOString(),user,team,synced:false};
+  await saveDrink(drink);showToast('Registrert!');
+  currentLocation=null;document.getElementById('locText').textContent='Posisjon';document.getElementById('locBtn').classList.remove('active');
+  updateCount();syncToSheet();
 });
 
-function resetForm() {
-  currentLocation = null;
-  document.getElementById('locText').textContent = 'Posisjon';
-  document.getElementById('locBtn').classList.remove('active');
+// ============ List ============
+let activeFilter='';
+document.querySelectorAll('.filter-chip').forEach(c=>{c.addEventListener('click',()=>{document.querySelectorAll('.filter-chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');activeFilter=c.dataset.filter;renderList()})});
+
+async function renderList(){
+  const drinks=await getAll(),user=getUserName();
+  let f=drinks.filter(d=>{const mt=!activeFilter||d.type===activeFilter;const mu=!d.user||d.user===user;return mt&&mu});
+  f.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const el=document.getElementById('drinkList');
+  if(!f.length){el.innerHTML=`<div class="empty-state"><div class="e-icon">&#127866;</div><div>Ingen enda</div></div>`;return}
+  el.innerHTML=f.map(d=>{const m=TYPE_META[d.type]||TYPE_META.other;const ds=new Date(d.date).toLocaleDateString('no-NO',{day:'numeric',month:'short'});const ts=new Date(d.date).toLocaleTimeString('no-NO',{hour:'2-digit',minute:'2-digit'});
+    return`<div class="drink-item" onclick="this.classList.toggle('expanded')"><div class="drink-type-dot" style="background:${m.color}22">${m.emoji}</div><div class="drink-item-info"><div class="drink-item-name">${m.label}</div><div class="drink-detail"><div class="drink-item-actions"><button class="act-del" onclick="event.stopPropagation();delDrink('${d.id}')">Slett</button></div></div></div><div class="drink-item-right"><div class="drink-item-date">${ds} ${ts}</div></div></div>`}).join('');
+}
+async function delDrink(id){if(!confirm('Slette?'))return;await removeDrink(id);showToast('Slettet');renderList();updateCount()}
+
+// ============ Leaderboard + Alliance ============
+async function fetchRemote(){
+  if(allRemoteDrinks.length)return allRemoteDrinks;
+  try{const r=await fetch(getSheetUrl());const d=await r.json();allRemoteDrinks=d.drinks||[];return allRemoteDrinks}catch(e){return[]}
 }
 
-// ============ List (own drinks only) ============
-let activeFilter = '';
+async function renderLeaderboard(){
+  const el=document.getElementById('boardContent');
+  el.innerHTML='<div class="empty-state"><div class="e-icon">&#8987;</div><div>Henter data...</div></div>';
+  const remote=await fetchRemote();
+  if(!remote.length){el.innerHTML=`<div class="empty-state"><div class="e-icon">&#127942;</div><div>Ingen data enda</div></div>`;return}
 
-document.querySelectorAll('.filter-chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    activeFilter = chip.dataset.filter;
-    renderList();
+  const today=new Date().toISOString().slice(0,10);
+  const userMap={};
+  remote.forEach(d=>{const u=d.user||'Ukjent';if(!userMap[u])userMap[u]={total:0,today:0,types:{},team:d.team||''};userMap[u].total++;if(String(d.date).slice(0,10)===today)userMap[u].today++;const t=d.type||'other';userMap[u].types[t]=(userMap[u].types[t]||0)+1});
+  const sorted=Object.entries(userMap).sort((a,b)=>b[1].total-a[1].total);
+  const todaySorted=Object.entries(userMap).filter(([,v])=>v.today>0).sort((a,b)=>b[1].today-a[1].today);
+  const todayLeader=todaySorted.length?todaySorted[0][0]:null;
+
+  // Alliance
+  const guttaCount=remote.filter(d=>d.team==='gutta').length;
+  const jenteneCount=remote.filter(d=>d.team==='jentene').length;
+  const guttaMembers=[...new Set(remote.filter(d=>d.team==='gutta').map(d=>d.user))];
+  const jenteneMembers=[...new Set(remote.filter(d=>d.team==='jentene').map(d=>d.user))];
+
+  let html=`
+    <div class="stat-section"><h3>Gutta vs Jentene</h3></div>
+    <div class="alliance-battle">
+      <div class="alliance-team" style="border-color:var(--team-gutta);${guttaCount>=jenteneCount?'background:#2980b915':''}">
+        <div class="at-name" style="color:var(--team-gutta)">Gutta</div>
+        <div class="at-count" style="color:var(--team-gutta)">${guttaCount}</div>
+        <div class="at-members">${guttaMembers.join(', ')||'Ingen enda'}</div>
+      </div>
+      <div class="alliance-vs">VS</div>
+      <div class="alliance-team" style="border-color:var(--team-jentene);${jenteneCount>guttaCount?'background:#e74c8b15':''}">
+        <div class="at-name" style="color:var(--team-jentene)">Jentene</div>
+        <div class="at-count" style="color:var(--team-jentene)">${jenteneCount}</div>
+        <div class="at-members">${jenteneMembers.join(', ')||'Ingen enda'}</div>
+      </div>
+    </div>`;
+
+  // Individual leaderboard
+  html+=`<div class="stat-section"><h3>Individuelt</h3></div>`;
+  sorted.forEach(([name,stats],i)=>{
+    const rc=i===0?'gold':i===1?'silver':i===2?'bronze':'normal';
+    const te=Object.entries(stats.types).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`${(TYPE_META[t]||TYPE_META.other).emoji}${c}`).join(' ');
+    const tl=name===todayLeader;
+    const teamColor=stats.team==='gutta'?'var(--team-gutta)':stats.team==='jentene'?'var(--team-jentene)':'var(--text-dim)';
+    const teamLabel=stats.team==='gutta'?'G':stats.team==='jentene'?'J':'';
+    html+=`<div class="lb-item"><div class="lb-rank ${rc}">${i+1}</div><div class="lb-info"><div class="lb-name">${esc(name)}${teamLabel?`<span class="lb-team-badge" style="background:${teamColor}33;color:${teamColor}">${teamLabel}</span>`:''}${tl?'<span class="lb-today-badge">I dag</span>':''}</div><div class="lb-types">${te}</div></div><div class="lb-count">${stats.total}</div></div>`;
   });
-});
 
-async function renderList() {
-  const drinks = await getAll();
-  const user = getUserName();
-
-  let filtered = drinks.filter(d => {
-    const matchType = !activeFilter || d.type === activeFilter;
-    const matchUser = !d.user || d.user === user;
-    return matchType && matchUser;
-  });
-
-  filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-  const container = document.getElementById('drinkList');
-  if (filtered.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="e-icon">&#127866;</div><div>Ingen registrerte enda</div></div>`;
-    return;
+  if(todaySorted.length){
+    html+=`<div class="stat-section"><h3>I dag</h3></div>`;
+    todaySorted.forEach(([name,stats])=>{html+=`<div class="stat-bar-item"><span class="stat-bar-label">${esc(name)}</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${stats.today/todaySorted[0][1].today*100}%;background:var(--accent)"></div></div><span class="stat-bar-count">${stats.today}</span></div>`});
   }
-
-  container.innerHTML = filtered.map(d => {
-    const meta = TYPE_META[d.type] || TYPE_META.other;
-    const dateStr = new Date(d.date).toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
-    const timeStr = new Date(d.date).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
-
-    return `
-      <div class="drink-item" onclick="this.classList.toggle('expanded')">
-        <div class="drink-type-dot" style="background:${meta.color}22">${meta.emoji}</div>
-        <div class="drink-item-info">
-          <div class="drink-item-name">${meta.label}</div>
-          <div class="drink-detail">
-            <div class="drink-item-actions">
-              <button class="act-del" onclick="event.stopPropagation();delDrink('${d.id}')">Slett</button>
-            </div>
-          </div>
-        </div>
-        <div class="drink-item-right">
-          <div class="drink-item-date">${dateStr} ${timeStr}</div>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-async function delDrink(id) {
-  if (!confirm('Slette?')) return;
-  await removeDrink(id);
-  showToast('Slettet');
-  renderList();
-  updateCount();
-}
-
-// ============ Leaderboard ============
-async function renderLeaderboard() {
-  const el = document.getElementById('boardContent');
-  const url = getSheetUrl();
-
-  if (!url) {
-    el.innerHTML = `<div class="empty-state"><div class="e-icon">&#127942;</div><div>Koble til Google Sheet for leaderboard</div></div>`;
-    return;
-  }
-
-  // Use cached data or fetch
-  if (allRemoteDrinks.length === 0) {
-    el.innerHTML = `<div class="empty-state"><div class="e-icon">&#8987;</div><div>Henter data...</div></div>`;
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      allRemoteDrinks = data.drinks || [];
-    } catch (err) {
-      el.innerHTML = `<div class="empty-state"><div class="e-icon">&#9888;</div><div>Kunne ikke hente data</div></div>`;
-      return;
-    }
-  }
-
-  if (allRemoteDrinks.length === 0) {
-    el.innerHTML = `<div class="empty-state"><div class="e-icon">&#127942;</div><div>Ingen drinks logget enda</div></div>`;
-    return;
-  }
-
-  const today = new Date().toISOString().slice(0, 10);
-
-  // Per user stats
-  const userMap = {};
-  allRemoteDrinks.forEach(d => {
-    const u = d.user || 'Ukjent';
-    if (!userMap[u]) userMap[u] = { total: 0, today: 0, types: {} };
-    userMap[u].total++;
-    if (String(d.date).slice(0, 10) === today) userMap[u].today++;
-    const t = d.type || 'other';
-    userMap[u].types[t] = (userMap[u].types[t] || 0) + 1;
-  });
-
-  const sorted = Object.entries(userMap).sort((a, b) => b[1].total - a[1].total);
-
-  // Today's leader
-  const todaySorted = Object.entries(userMap).filter(([,v]) => v.today > 0).sort((a, b) => b[1].today - a[1].today);
-  const todayLeader = todaySorted.length ? todaySorted[0][0] : null;
-
-  let html = '';
-
-  // Leaderboard
-  html += `<div class="stat-section"><h3>Totalt</h3>`;
-  sorted.forEach(([name, stats], i) => {
-    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : 'normal';
-    const typeEmojis = Object.entries(stats.types)
-      .sort((a, b) => b[1] - a[1])
-      .map(([t, c]) => `${(TYPE_META[t]||TYPE_META.other).emoji}${c}`)
-      .join(' ');
-    const isTodayLeader = name === todayLeader;
-
-    html += `
-      <div class="lb-item">
-        <div class="lb-rank ${rankClass}">${i + 1}</div>
-        <div class="lb-info">
-          <div class="lb-name">${esc(name)}${isTodayLeader ? '<span class="lb-today-badge">I dag</span>' : ''}</div>
-          <div class="lb-types">${typeEmojis}</div>
-        </div>
-        <div class="lb-count">${stats.total}</div>
-      </div>`;
-  });
-  html += `</div>`;
-
-  // Today stats
-  if (todaySorted.length) {
-    html += `<div class="stat-section"><h3>I dag</h3>`;
-    todaySorted.forEach(([name, stats]) => {
-      html += `
-        <div class="stat-bar-item">
-          <span class="stat-bar-label">${esc(name)}</span>
-          <div class="stat-bar-track">
-            <div class="stat-bar-fill" style="width:${(stats.today / todaySorted[0][1].today * 100)}%;background:var(--accent)"></div>
-          </div>
-          <span class="stat-bar-count">${stats.today}</span>
-        </div>`;
-    });
-    html += `</div>`;
-  }
-
-  // Type breakdown total
-  const totalTypes = {};
-  allRemoteDrinks.forEach(d => {
-    const t = d.type || 'other';
-    totalTypes[t] = (totalTypes[t] || 0) + 1;
-  });
-
-  html += `<div class="type-breakdown">`;
-  Object.entries(TYPE_META).forEach(([type, meta]) => {
-    html += `
-      <div class="type-stat">
-        <div class="ts-emoji">${meta.emoji}</div>
-        <div class="ts-count" style="color:${meta.color}">${totalTypes[type] || 0}</div>
-        <div class="ts-label">${meta.label}</div>
-      </div>`;
-  });
-  html += `</div>`;
-
-  el.innerHTML = html;
-}
-
-function esc(str) {
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
+  el.innerHTML=html;
 }
 
 // ============ Stats ============
-async function renderStats() {
-  const el = document.getElementById('statsContent');
-  const user = getUserName();
-  const local = await getAll();
-  const myDrinks = local.filter(d => !d.user || d.user === user);
+async function renderStats(){
+  const el=document.getElementById('statsContent'),user=getUserName(),local=await getAll(),myDrinks=local.filter(d=>!d.user||d.user===user);
+  const remote=await fetchRemote();
+  const today=new Date().toISOString().slice(0,10),now=new Date();
 
-  // Fetch remote for group stats
-  let remote = allRemoteDrinks;
-  if (remote.length === 0) {
-    try {
-      const res = await fetch(getSheetUrl());
-      const data = await res.json();
-      remote = data.drinks || [];
-      allRemoteDrinks = remote;
-    } catch(e) { remote = []; }
+  function calcStats(drinks){
+    const types={};Object.keys(TYPE_META).forEach(t=>types[t]=0);drinks.forEach(d=>types[d.type]=(types[d.type]||0)+1);
+    const days=new Set(drinks.map(d=>String(d.date).slice(0,10))),todayC=drinks.filter(d=>String(d.date).slice(0,10)===today).length;
+    const bars=[];for(let i=13;i>=0;i--){const dt=new Date(now);dt.setDate(dt.getDate()-i);const k=dt.toISOString().slice(0,10);const c=drinks.filter(d=>String(d.date).slice(0,10)===k).length;const l=dt.toLocaleDateString('no-NO',{day:'numeric',month:'short'});bars.push({count:c,label:i%2===0?l:''})}
+    return{types,days,todayC,bars,max:Math.max(...bars.map(b=>b.count),1)};
   }
+  function renderBars(bars,max){return bars.map(b=>`<div class="timeline-bar" style="height:${b.count?(b.count/max*100):2}%;background:${b.count?'var(--accent)':'var(--bg3)'}"><span class="tl-label">${b.label}</span></div>`).join('')}
+  function renderTypes(types){return Object.entries(TYPE_META).map(([t,m])=>`<div class="type-stat"><div class="ts-emoji">${m.emoji}</div><div class="ts-count" style="color:${m.color}">${types[t]}</div><div class="ts-label">${m.label}</div></div>`).join('')}
 
-  const today = new Date().toISOString().slice(0, 10);
+  const my=calcStats(myDrinks),grp=calcStats(remote);
+  const grpUsers=new Set(remote.map(d=>d.user).filter(Boolean));
 
-  // === MY STATS ===
-  const myTypes = {};
-  Object.keys(TYPE_META).forEach(t => myTypes[t] = 0);
-  myDrinks.forEach(d => myTypes[d.type] = (myTypes[d.type] || 0) + 1);
-  const myDays = new Set(myDrinks.map(d => d.date.slice(0, 10)));
-  const myToday = myDrinks.filter(d => d.date.slice(0, 10) === today).length;
-
-  // My last 14 days
-  const now = new Date();
-  const myBars = [];
-  for (let i = 13; i >= 0; i--) {
-    const dt = new Date(now); dt.setDate(dt.getDate() - i);
-    const key = dt.toISOString().slice(0, 10);
-    const count = myDrinks.filter(d => d.date.slice(0, 10) === key).length;
-    const label = dt.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
-    myBars.push({ count, label: i % 2 === 0 ? label : '' });
-  }
-  const myMax = Math.max(...myBars.map(b => b.count), 1);
-
-  // === GROUP STATS ===
-  const grpTypes = {};
-  Object.keys(TYPE_META).forEach(t => grpTypes[t] = 0);
-  remote.forEach(d => grpTypes[d.type] = (grpTypes[d.type] || 0) + 1);
-  const grpDays = new Set(remote.map(d => String(d.date).slice(0, 10)));
-  const grpToday = remote.filter(d => String(d.date).slice(0, 10) === today).length;
-  const grpUsers = new Set(remote.map(d => d.user).filter(Boolean));
-
-  // Group last 14 days
-  const grpBars = [];
-  for (let i = 13; i >= 0; i--) {
-    const dt = new Date(now); dt.setDate(dt.getDate() - i);
-    const key = dt.toISOString().slice(0, 10);
-    const count = remote.filter(d => String(d.date).slice(0, 10) === key).length;
-    const label = dt.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
-    grpBars.push({ count, label: i % 2 === 0 ? label : '' });
-  }
-  const grpMax = Math.max(...grpBars.map(b => b.count), 1);
-
-  function timelineBars(bars, max) {
-    return bars.map(b => `
-      <div class="timeline-bar" style="height:${b.count ? (b.count / max * 100) : 2}%;background:${b.count ? 'var(--accent)' : 'var(--bg3)'}">
-        <span class="tl-label">${b.label}</span>
-      </div>`).join('');
-  }
-
-  function typeBreakdown(types) {
-    return Object.entries(TYPE_META).map(([type, meta]) => `
-      <div class="type-stat">
-        <div class="ts-emoji">${meta.emoji}</div>
-        <div class="ts-count" style="color:${meta.color}">${types[type]}</div>
-        <div class="ts-label">${meta.label}</div>
-      </div>`).join('');
-  }
-
-  el.innerHTML = `
-    <div class="stat-section"><h3>${esc(user || 'Mine')} stats</h3></div>
-    <div class="stat-grid">
-      <div class="stat-card"><div class="sv">${myDrinks.length}</div><div class="sl">Totalt</div></div>
-      <div class="stat-card"><div class="sv">${myToday}</div><div class="sl">I dag</div></div>
-      <div class="stat-card"><div class="sv">${myDays.size}</div><div class="sl">Aktive dager</div></div>
-      <div class="stat-card"><div class="sv">${myDays.size ? (myDrinks.length / myDays.size).toFixed(1) : '0'}</div><div class="sl">Per dag</div></div>
-    </div>
-    <div class="type-breakdown">${typeBreakdown(myTypes)}</div>
-    <div class="stat-section"><h3>Mine siste 14 dager</h3>
-      <div class="timeline-wrap"><div class="timeline">${timelineBars(myBars, myMax)}</div></div>
-    </div>
-
+  el.innerHTML=`
+    <div class="stat-section"><h3>${esc(user||'Mine')} stats</h3></div>
+    <div class="stat-grid"><div class="stat-card"><div class="sv">${myDrinks.length}</div><div class="sl">Totalt</div></div><div class="stat-card"><div class="sv">${my.todayC}</div><div class="sl">I dag</div></div><div class="stat-card"><div class="sv">${my.days.size}</div><div class="sl">Aktive dager</div></div><div class="stat-card"><div class="sv">${my.days.size?(myDrinks.length/my.days.size).toFixed(1):'0'}</div><div class="sl">Per dag</div></div></div>
+    <div class="type-breakdown">${renderTypes(my.types)}</div>
+    <div class="stat-section"><h3>Mine siste 14 dager</h3><div class="timeline-wrap"><div class="timeline">${renderBars(my.bars,my.max)}</div></div></div>
     <div style="border-top:1px solid var(--bg3);margin:20px 0"></div>
-
     <div class="stat-section"><h3>Gjengen</h3></div>
-    <div class="filter-row" id="statsUserFilter">
-      <span class="filter-chip active" data-suser="">Alle</span>
-      ${[...grpUsers].sort().map(u => `<span class="filter-chip" data-suser="${esc(u)}">${esc(u)}</span>`).join('')}
-    </div>
-    <div id="grpStatsContent"></div>
-  `;
+    <div class="filter-row" id="statsUserFilter"><span class="filter-chip active" data-suser="">Alle</span>${[...grpUsers].sort().map(u=>`<span class="filter-chip" data-suser="${esc(u)}">${esc(u)}</span>`).join('')}</div>
+    <div id="grpStatsContent"></div>`;
 
-  renderGroupStats(remote, '');
+  renderGroupStats(remote,'');
+  document.querySelectorAll('#statsUserFilter .filter-chip').forEach(c=>{c.addEventListener('click',()=>{document.querySelectorAll('#statsUserFilter .filter-chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');renderGroupStats(remote,c.dataset.suser)})});
+}
 
-  document.querySelectorAll('#statsUserFilter .filter-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      document.querySelectorAll('#statsUserFilter .filter-chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      renderGroupStats(remote, chip.dataset.suser);
-    });
+function renderGroupStats(all,filterUser){
+  const el=document.getElementById('grpStatsContent'),filtered=filterUser?all.filter(d=>d.user===filterUser):all;
+  const today=new Date().toISOString().slice(0,10),now=new Date();
+  const types={};Object.keys(TYPE_META).forEach(t=>types[t]=0);filtered.forEach(d=>types[d.type]=(types[d.type]||0)+1);
+  const days=new Set(filtered.map(d=>String(d.date).slice(0,10))),todayC=filtered.filter(d=>String(d.date).slice(0,10)===today).length,users=new Set(filtered.map(d=>d.user).filter(Boolean));
+  const bars=[];for(let i=13;i>=0;i--){const dt=new Date(now);dt.setDate(dt.getDate()-i);const k=dt.toISOString().slice(0,10);const c=filtered.filter(d=>String(d.date).slice(0,10)===k).length;const l=dt.toLocaleDateString('no-NO',{day:'numeric',month:'short'});bars.push({count:c,label:i%2===0?l:''})}
+  const max=Math.max(...bars.map(b=>b.count),1);
+  el.innerHTML=`
+    <div class="stat-grid"><div class="stat-card"><div class="sv">${filtered.length}</div><div class="sl">Totalt</div></div><div class="stat-card"><div class="sv">${todayC}</div><div class="sl">I dag</div></div><div class="stat-card"><div class="sv">${filterUser?days.size:users.size}</div><div class="sl">${filterUser?'Aktive dager':'Deltakere'}</div></div><div class="stat-card"><div class="sv">${days.size?(filtered.length/days.size).toFixed(1):'0'}</div><div class="sl">Per dag</div></div></div>
+    <div class="type-breakdown">${Object.entries(TYPE_META).map(([t,m])=>`<div class="type-stat"><div class="ts-emoji">${m.emoji}</div><div class="ts-count" style="color:${m.color}">${types[t]}</div><div class="ts-label">${m.label}</div></div>`).join('')}</div>
+    <div class="stat-section"><h3>Siste 14 dager</h3><div class="timeline-wrap"><div class="timeline">${bars.map(b=>`<div class="timeline-bar" style="height:${b.count?(b.count/max*100):2}%;background:${b.count?'var(--accent)':'var(--bg3)'}"><span class="tl-label">${b.label}</span></div>`).join('')}</div></div></div>`;
+}
+
+// ============ Map ============
+async function renderMap(){
+  const remote=await fetchRemote();
+  const withLoc=remote.filter(d=>d.lat&&d.lng&&d.lat!==''&&d.lng!=='');
+
+  if(!mapInstance){
+    const center=withLoc.length?[parseFloat(withLoc[0].lat),parseFloat(withLoc[0].lng)]:[59.91,10.75];
+    mapInstance=L.map('drinkMap').setView(center,withLoc.length?10:4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:18}).addTo(mapInstance);
+  }
+
+  // Clear existing markers
+  mapInstance.eachLayer(l=>{if(l instanceof L.Marker)mapInstance.removeLayer(l)});
+
+  const bounds=[];
+  withLoc.forEach(d=>{
+    const lat=parseFloat(d.lat),lng=parseFloat(d.lng);
+    const meta=TYPE_META[d.type]||TYPE_META.other;
+    const teamColor=d.team==='gutta'?'#2980b9':d.team==='jentene'?'#e74c8b':'#d4a031';
+    const icon=L.divIcon({className:'',html:`<div style="background:${teamColor};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${meta.emoji}</div>`,iconSize:[28,28],iconAnchor:[14,14]});
+    const dateStr=new Date(d.date).toLocaleDateString('no-NO',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    L.marker([lat,lng],{icon}).addTo(mapInstance).bindPopup(`<b>${esc(d.user||'?')}</b><br>${meta.label}<br><small>${dateStr}</small>`);
+    bounds.push([lat,lng]);
   });
-}
 
-function renderGroupStats(allDrinks, filterUser) {
-  const el = document.getElementById('grpStatsContent');
-  const filtered = filterUser ? allDrinks.filter(d => d.user === filterUser) : allDrinks;
-  const today = new Date().toISOString().slice(0, 10);
-  const label = filterUser || 'Alle';
-
-  const types = {};
-  Object.keys(TYPE_META).forEach(t => types[t] = 0);
-  filtered.forEach(d => types[d.type] = (types[d.type] || 0) + 1);
-  const days = new Set(filtered.map(d => String(d.date).slice(0, 10)));
-  const todayCount = filtered.filter(d => String(d.date).slice(0, 10) === today).length;
-  const users = new Set(filtered.map(d => d.user).filter(Boolean));
-
-  const now = new Date();
-  const bars = [];
-  for (let i = 13; i >= 0; i--) {
-    const dt = new Date(now); dt.setDate(dt.getDate() - i);
-    const key = dt.toISOString().slice(0, 10);
-    const count = filtered.filter(d => String(d.date).slice(0, 10) === key).length;
-    const dayLabel = dt.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
-    bars.push({ count, label: i % 2 === 0 ? dayLabel : '' });
-  }
-  const maxBar = Math.max(...bars.map(b => b.count), 1);
-
-  function timelineBars(b, m) {
-    return b.map(x => `
-      <div class="timeline-bar" style="height:${x.count ? (x.count / m * 100) : 2}%;background:${x.count ? 'var(--accent)' : 'var(--bg3)'}">
-        <span class="tl-label">${x.label}</span>
-      </div>`).join('');
-  }
-
-  function typeBreakdown(t) {
-    return Object.entries(TYPE_META).map(([type, meta]) => `
-      <div class="type-stat">
-        <div class="ts-emoji">${meta.emoji}</div>
-        <div class="ts-count" style="color:${meta.color}">${t[type]}</div>
-        <div class="ts-label">${meta.label}</div>
-      </div>`).join('');
-  }
-
-  el.innerHTML = `
-    <div class="stat-grid">
-      <div class="stat-card"><div class="sv">${filtered.length}</div><div class="sl">Totalt</div></div>
-      <div class="stat-card"><div class="sv">${todayCount}</div><div class="sl">I dag</div></div>
-      <div class="stat-card"><div class="sv">${filterUser ? days.size : users.size}</div><div class="sl">${filterUser ? 'Aktive dager' : 'Deltakere'}</div></div>
-      <div class="stat-card"><div class="sv">${days.size ? (filtered.length / days.size).toFixed(1) : '0'}</div><div class="sl">Per dag</div></div>
-    </div>
-    <div class="type-breakdown">${typeBreakdown(types)}</div>
-    <div class="stat-section"><h3>Siste 14 dager</h3>
-      <div class="timeline-wrap"><div class="timeline">${timelineBars(bars, maxBar)}</div></div>
-    </div>
-  `;
-}
-
-// ============ Google Sheets Sync ============
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwXLXC-8BRzvxzmr8mPj1BEYm7r3xfoWgS-3NaxvB8ryy9yNPMJfsk8GWfOV9HFMhJCdw/exec';
-function getSheetUrl() { return SHEET_URL; }
-function setSheetUrl(url) { localStorage.setItem('sheetUrl', url); }
-
-async function syncToSheet() {
-  const url = getSheetUrl();
-  if (!url) return;
-
-  const drinks = await getAll();
-  const unsynced = drinks.filter(d => !d.synced);
-  if (unsynced.length === 0) return;
-
-  try {
-    const payload = {
-      drinks: unsynced.map(d => ({
-        id: d.id,
-        date: d.date,
-        type: d.type,
-        lat: d.location?.lat || '',
-        lng: d.location?.lng || '',
-        user: d.user || getUserName()
-      }))
-    };
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await res.json();
-    if (result.success) {
-      for (const d of unsynced) {
-        d.synced = true;
-        await saveDrink(d);
-      }
-      // Clear leaderboard cache so it refreshes
-      allRemoteDrinks = [];
-    }
-  } catch (err) {
-    console.error('Sync error:', err);
+  if(bounds.length){
+    setTimeout(()=>{mapInstance.invalidateSize();if(bounds.length>1)mapInstance.fitBounds(bounds,{padding:[30,30]});else mapInstance.setView(bounds[0],14)},100);
+  } else {
+    setTimeout(()=>mapInstance.invalidateSize(),100);
   }
 }
 
-async function syncFromSheet() {
-  const url = getSheetUrl();
-  if (!url) return;
-
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    allRemoteDrinks = data.drinks || [];
-
-    // Import own drinks to local DB
-    const user = getUserName();
-    const local = await getAll();
-    const localIds = new Set(local.map(d => d.id));
-
-    let added = 0;
-    for (const rd of allRemoteDrinks) {
-      if (!localIds.has(String(rd.id)) && rd.user === user) {
-        await saveDrink({
-          id: rd.id,
-          date: rd.date,
-          type: rd.type,
-          name: (TYPE_META[rd.type] || TYPE_META.other).label,
-          location: (rd.lat && rd.lng) ? { lat: parseFloat(rd.lat), lng: parseFloat(rd.lng) } : null,
-          user: rd.user,
-          synced: true
-        });
-        added++;
-      }
-    }
-
-    for (const d of local) {
-      if (!d.synced) { d.synced = true; await saveDrink(d); }
-    }
-
-    updateSyncStatus(true, `Synket! ${allRemoteDrinks.length} totalt`);
-    if (added > 0) updateCount();
-  } catch (err) {
-    console.error('Sync from sheet error:', err);
-    updateSyncStatus(false, 'Henting feilet');
-  }
+// ============ Sync ============
+async function syncToSheet(){
+  const url=getSheetUrl();if(!url)return;
+  const drinks=await getAll(),unsynced=drinks.filter(d=>!d.synced);
+  if(!unsynced.length)return;
+  try{
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({drinks:unsynced.map(d=>({id:d.id,date:d.date,type:d.type,lat:d.location?.lat||'',lng:d.location?.lng||'',user:d.user||getUserName(),team:d.team||getUserTeam()}))})});
+    const result=await res.json();
+    if(result.success){for(const d of unsynced){d.synced=true;await saveDrink(d)}allRemoteDrinks=[]}
+  }catch(e){console.error('Sync:',e)}
 }
 
-function updateSyncStatus(connected, text) {
-  const el = document.getElementById('syncStatus');
-  el.className = 'sync-status ' + (connected ? 'connected' : 'disconnected');
-  document.getElementById('syncStatusText').textContent = text || (connected ? 'Koblet til' : 'Ikke koblet til');
+async function syncFromSheet(){
+  const url=getSheetUrl();if(!url)return;
+  try{const res=await fetch(url);const data=await res.json();allRemoteDrinks=data.drinks||[];
+    const user=getUserName(),local=await getAll(),localIds=new Set(local.map(d=>d.id));
+    for(const rd of allRemoteDrinks){if(!localIds.has(String(rd.id))&&rd.user===user){await saveDrink({id:rd.id,date:rd.date,type:rd.type,name:(TYPE_META[rd.type]||TYPE_META.other).label,location:(rd.lat&&rd.lng)?{lat:parseFloat(rd.lat),lng:parseFloat(rd.lng)}:null,user:rd.user,team:rd.team||'',synced:true})}}
+    for(const d of local){if(!d.synced){d.synced=true;await saveDrink(d)}}
+    updateCount();
+  }catch(e){console.error('SyncFrom:',e)}
 }
-
-// ============ Settings ============
-function loadSettings() {
-  document.getElementById('sheetUrl').value = getSheetUrl();
-  document.getElementById('settingsName').value = getUserName();
-  updateSyncStatus(!!getSheetUrl(), getSheetUrl() ? 'Koblet til' : 'Ikke koblet til');
-}
-
-document.getElementById('saveUrlBtn').addEventListener('click', () => {
-  const url = document.getElementById('sheetUrl').value.trim();
-  setSheetUrl(url);
-  updateSyncStatus(!!url, url ? 'URL lagret' : 'URL fjernet');
-  showToast(url ? 'URL lagret!' : 'URL fjernet');
-  allRemoteDrinks = [];
-});
-
-document.getElementById('syncNowBtn').addEventListener('click', async () => {
-  if (!getSheetUrl()) { showToast('Legg inn URL forst'); return; }
-  showToast('Synker...');
-  await syncToSheet();
-  await syncFromSheet();
-  showToast('Ferdig!');
-});
-
-document.getElementById('exportBtn').addEventListener('click', async () => {
-  const drinks = await getAll();
-  const blob = new Blob([JSON.stringify(drinks, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'drink-tracker-export.json';
-  a.click();
-});
-
-document.getElementById('clearBtn').addEventListener('click', async () => {
-  if (!confirm('Slette ALL lokal data?')) return;
-  await clearAllDrinks();
-  showToast('Data slettet');
-  updateCount();
-});
 
 // ============ Utils ============
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
-}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+async function updateCount(){const d=await getAll();document.getElementById('totalCount').textContent=d.length===0?'Stay hydrated queen':`${d.length} drink${d.length>1?'s':''} logget`}
 
-async function updateCount() {
-  const drinks = await getAll();
-  const el = document.getElementById('totalCount');
-  el.textContent = drinks.length === 0
-    ? 'Stay hydrated queen'
-    : `${drinks.length} drink${drinks.length > 1 ? 's' : ''} logget`;
-}
+document.getElementById('exportBtn').addEventListener('click',async()=>{const d=await getAll();const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='drink-tracker-export.json';a.click()});
+document.getElementById('clearBtn').addEventListener('click',async()=>{if(!confirm('Slette ALL lokal data?'))return;await clearAllDrinks();showToast('Slettet');updateCount()});
 
-// ============ Init ============
-checkName();
-updateCount();
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
+// Init
+checkName();updateCount();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>
