@@ -861,7 +861,8 @@ function esc(str) {
 }
 
 // ============ Google Sheets Sync ============
-function getSheetUrl() { return localStorage.getItem('sheetUrl') || ''; }
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwXLXC-8BRzvxzmr8mPj1BEYm7r3xfoWgS-3NaxvB8ryy9yNPMJfsk8GWfOV9HFMhJCdw/exec';
+function getSheetUrl() { return SHEET_URL; }
 function setSheetUrl(url) { localStorage.setItem('sheetUrl', url); }
 
 async function syncToSheet() {
