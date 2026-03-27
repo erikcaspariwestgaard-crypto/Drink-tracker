@@ -960,15 +960,74 @@ async function renderStats() {
     <div style="border-top:1px solid var(--bg3);margin:20px 0"></div>
 
     <div class="stat-section"><h3>Gjengen</h3></div>
-    <div class="stat-grid">
-      <div class="stat-card"><div class="sv">${remote.length}</div><div class="sl">Totalt</div></div>
-      <div class="stat-card"><div class="sv">${grpToday}</div><div class="sl">I dag</div></div>
-      <div class="stat-card"><div class="sv">${grpUsers.size}</div><div class="sl">Deltakere</div></div>
-      <div class="stat-card"><div class="sv">${grpDays.size ? (remote.length / grpDays.size).toFixed(1) : '0'}</div><div class="sl">Per dag</div></div>
+    <div class="filter-row" id="statsUserFilter">
+      <span class="filter-chip active" data-suser="">Alle</span>
+      ${[...grpUsers].sort().map(u => `<span class="filter-chip" data-suser="${esc(u)}">${esc(u)}</span>`).join('')}
     </div>
-    <div class="type-breakdown">${typeBreakdown(grpTypes)}</div>
-    <div class="stat-section"><h3>Gjengen siste 14 dager</h3>
-      <div class="timeline-wrap"><div class="timeline">${timelineBars(grpBars, grpMax)}</div></div>
+    <div id="grpStatsContent"></div>
+  `;
+
+  renderGroupStats(remote, '');
+
+  document.querySelectorAll('#statsUserFilter .filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#statsUserFilter .filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      renderGroupStats(remote, chip.dataset.suser);
+    });
+  });
+}
+
+function renderGroupStats(allDrinks, filterUser) {
+  const el = document.getElementById('grpStatsContent');
+  const filtered = filterUser ? allDrinks.filter(d => d.user === filterUser) : allDrinks;
+  const today = new Date().toISOString().slice(0, 10);
+  const label = filterUser || 'Alle';
+
+  const types = {};
+  Object.keys(TYPE_META).forEach(t => types[t] = 0);
+  filtered.forEach(d => types[d.type] = (types[d.type] || 0) + 1);
+  const days = new Set(filtered.map(d => String(d.date).slice(0, 10)));
+  const todayCount = filtered.filter(d => String(d.date).slice(0, 10) === today).length;
+  const users = new Set(filtered.map(d => d.user).filter(Boolean));
+
+  const now = new Date();
+  const bars = [];
+  for (let i = 13; i >= 0; i--) {
+    const dt = new Date(now); dt.setDate(dt.getDate() - i);
+    const key = dt.toISOString().slice(0, 10);
+    const count = filtered.filter(d => String(d.date).slice(0, 10) === key).length;
+    const dayLabel = dt.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
+    bars.push({ count, label: i % 2 === 0 ? dayLabel : '' });
+  }
+  const maxBar = Math.max(...bars.map(b => b.count), 1);
+
+  function timelineBars(b, m) {
+    return b.map(x => `
+      <div class="timeline-bar" style="height:${x.count ? (x.count / m * 100) : 2}%;background:${x.count ? 'var(--accent)' : 'var(--bg3)'}">
+        <span class="tl-label">${x.label}</span>
+      </div>`).join('');
+  }
+
+  function typeBreakdown(t) {
+    return Object.entries(TYPE_META).map(([type, meta]) => `
+      <div class="type-stat">
+        <div class="ts-emoji">${meta.emoji}</div>
+        <div class="ts-count" style="color:${meta.color}">${t[type]}</div>
+        <div class="ts-label">${meta.label}</div>
+      </div>`).join('');
+  }
+
+  el.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="sv">${filtered.length}</div><div class="sl">Totalt</div></div>
+      <div class="stat-card"><div class="sv">${todayCount}</div><div class="sl">I dag</div></div>
+      <div class="stat-card"><div class="sv">${filterUser ? days.size : users.size}</div><div class="sl">${filterUser ? 'Aktive dager' : 'Deltakere'}</div></div>
+      <div class="stat-card"><div class="sv">${days.size ? (filtered.length / days.size).toFixed(1) : '0'}</div><div class="sl">Per dag</div></div>
+    </div>
+    <div class="type-breakdown">${typeBreakdown(types)}</div>
+    <div class="stat-section"><h3>Siste 14 dager</h3>
+      <div class="timeline-wrap"><div class="timeline">${timelineBars(bars, maxBar)}</div></div>
     </div>
   `;
 }
