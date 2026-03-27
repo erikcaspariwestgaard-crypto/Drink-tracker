@@ -447,6 +447,12 @@
   </div>
 </div>
 
+<!-- STATS -->
+<div class="page" id="page-stats">
+  <div class="section-header"><h2>Statistikk</h2></div>
+  <div id="statsContent"></div>
+</div>
+
 <!-- SETTINGS -->
 <div class="page" id="page-settings">
   <div class="section-header"><h2>Innstillinger</h2></div>
@@ -481,6 +487,9 @@
   </button>
   <button data-page="list">
     <span class="tab-icon">&#128203;</span>Historikk
+  </button>
+  <button data-page="stats">
+    <span class="tab-icon">&#128200;</span>Stats
   </button>
   <button data-page="board">
     <span class="tab-icon">&#127942;</span>Board
@@ -618,6 +627,7 @@ document.querySelectorAll('.tab-bar button').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('page-' + page).classList.add('active');
     if (page === 'list') renderList();
+    if (page === 'stats') renderStats();
     if (page === 'board') renderLeaderboard();
     if (page === 'settings') loadSettings();
   });
@@ -858,6 +868,109 @@ function esc(str) {
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
+}
+
+// ============ Stats ============
+async function renderStats() {
+  const el = document.getElementById('statsContent');
+  const user = getUserName();
+  const local = await getAll();
+  const myDrinks = local.filter(d => !d.user || d.user === user);
+
+  // Fetch remote for group stats
+  let remote = allRemoteDrinks;
+  if (remote.length === 0) {
+    try {
+      const res = await fetch(getSheetUrl());
+      const data = await res.json();
+      remote = data.drinks || [];
+      allRemoteDrinks = remote;
+    } catch(e) { remote = []; }
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // === MY STATS ===
+  const myTypes = {};
+  Object.keys(TYPE_META).forEach(t => myTypes[t] = 0);
+  myDrinks.forEach(d => myTypes[d.type] = (myTypes[d.type] || 0) + 1);
+  const myDays = new Set(myDrinks.map(d => d.date.slice(0, 10)));
+  const myToday = myDrinks.filter(d => d.date.slice(0, 10) === today).length;
+
+  // My last 14 days
+  const now = new Date();
+  const myBars = [];
+  for (let i = 13; i >= 0; i--) {
+    const dt = new Date(now); dt.setDate(dt.getDate() - i);
+    const key = dt.toISOString().slice(0, 10);
+    const count = myDrinks.filter(d => d.date.slice(0, 10) === key).length;
+    const label = dt.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
+    myBars.push({ count, label: i % 2 === 0 ? label : '' });
+  }
+  const myMax = Math.max(...myBars.map(b => b.count), 1);
+
+  // === GROUP STATS ===
+  const grpTypes = {};
+  Object.keys(TYPE_META).forEach(t => grpTypes[t] = 0);
+  remote.forEach(d => grpTypes[d.type] = (grpTypes[d.type] || 0) + 1);
+  const grpDays = new Set(remote.map(d => String(d.date).slice(0, 10)));
+  const grpToday = remote.filter(d => String(d.date).slice(0, 10) === today).length;
+  const grpUsers = new Set(remote.map(d => d.user).filter(Boolean));
+
+  // Group last 14 days
+  const grpBars = [];
+  for (let i = 13; i >= 0; i--) {
+    const dt = new Date(now); dt.setDate(dt.getDate() - i);
+    const key = dt.toISOString().slice(0, 10);
+    const count = remote.filter(d => String(d.date).slice(0, 10) === key).length;
+    const label = dt.toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
+    grpBars.push({ count, label: i % 2 === 0 ? label : '' });
+  }
+  const grpMax = Math.max(...grpBars.map(b => b.count), 1);
+
+  function timelineBars(bars, max) {
+    return bars.map(b => `
+      <div class="timeline-bar" style="height:${b.count ? (b.count / max * 100) : 2}%;background:${b.count ? 'var(--accent)' : 'var(--bg3)'}">
+        <span class="tl-label">${b.label}</span>
+      </div>`).join('');
+  }
+
+  function typeBreakdown(types) {
+    return Object.entries(TYPE_META).map(([type, meta]) => `
+      <div class="type-stat">
+        <div class="ts-emoji">${meta.emoji}</div>
+        <div class="ts-count" style="color:${meta.color}">${types[type]}</div>
+        <div class="ts-label">${meta.label}</div>
+      </div>`).join('');
+  }
+
+  el.innerHTML = `
+    <div class="stat-section"><h3>${esc(user || 'Mine')} stats</h3></div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="sv">${myDrinks.length}</div><div class="sl">Totalt</div></div>
+      <div class="stat-card"><div class="sv">${myToday}</div><div class="sl">I dag</div></div>
+      <div class="stat-card"><div class="sv">${myDays.size}</div><div class="sl">Aktive dager</div></div>
+      <div class="stat-card"><div class="sv">${myDays.size ? (myDrinks.length / myDays.size).toFixed(1) : '0'}</div><div class="sl">Per dag</div></div>
+    </div>
+    <div class="type-breakdown">${typeBreakdown(myTypes)}</div>
+    <div class="stat-section"><h3>Mine siste 14 dager</h3>
+      <div class="timeline-wrap"><div class="timeline">${timelineBars(myBars, myMax)}</div></div>
+    </div>
+
+    <div style="border-top:1px solid var(--bg3);margin:20px 0"></div>
+
+    <div class="stat-section"><h3>Gjengen</h3></div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="sv">${remote.length}</div><div class="sl">Totalt</div></div>
+      <div class="stat-card"><div class="sv">${grpToday}</div><div class="sl">I dag</div></div>
+      <div class="stat-card"><div class="sv">${grpUsers.size}</div><div class="sl">Deltakere</div></div>
+      <div class="stat-card"><div class="sv">${grpDays.size ? (remote.length / grpDays.size).toFixed(1) : '0'}</div><div class="sl">Per dag</div></div>
+    </div>
+    <div class="type-breakdown">${typeBreakdown(grpTypes)}</div>
+    <div class="stat-section"><h3>Gjengen siste 14 dager</h3>
+      <div class="timeline-wrap"><div class="timeline">${timelineBars(grpBars, grpMax)}</div></div>
+    </div>
+  `;
 }
 
 // ============ Google Sheets Sync ============
