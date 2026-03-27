@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#141018">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Drink Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #141018;
+      --bg2: #1e1a24;
+      --bg3: #2a2533;
+      --accent: #d4a031;
+      --accent-light: #e8c468;
+      --accent2: #c47f17;
+      --text: #f0e8f5;
+      --text-dim: #9a90a8;
+      --danger: #c0392b;
+      --success: #27ae60;
+      --radius: 14px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      min-height: 100dvh;
+      max-width: 480px;
+      margin: 0 auto;
+      padding-bottom: 70px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Name modal */
+    .name-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      padding: 20px;
+    }
+    .name-modal.hidden { display: none; }
+    .name-modal-box {
+      background: var(--bg2);
+      border: 1px solid var(--bg3);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 340px;
+      text-align: center;
+    }
+    .name-modal-box h2 {
+      font-size: 1.2rem;
+      color: var(--accent-light);
+      margin-bottom: 6px;
+    }
+    .name-modal-box p {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+    .name-modal-box input {
+      width: 100%;
+      padding: 14px;
+      background: var(--bg);
+      border: 1px solid var(--bg3);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 1.1rem;
+      text-align: center;
+      outline: none;
+      margin-bottom: 14px;
+    }
+    .name-modal-box input:focus { border-color: var(--accent); }
+    .name-modal-box button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: var(--bg);
+    }
+
+    .tab-bar {
+      display: flex;
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg2);
+      border-top: 1px solid var(--bg3);
+      z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    .tab-bar button {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      padding: 10px 0 8px;
+      font-size: 0.65rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .tab-bar button.active { color: var(--accent); }
+    .tab-bar button .tab-icon { font-size: 1.4rem; }
+
+    .page { display: none; padding: 12px 16px; }
+    .page.active { display: block; }
+
+    .quick-header { text-align: center; padding: 16px 0 12px; }
+    .quick-header h1 { font-size: 1.3rem; color: var(--accent-light); }
+    .quick-header .count { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+    .quick-header .user-name { font-size: 0.7rem; color: var(--accent); margin-top: 4px; cursor: pointer; }
+
+    .type-selector {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .type-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 4px;
+      background: var(--bg2);
+      border: 2px solid var(--bg3);
+      border-radius: var(--radius);
+      color: var(--text-dim);
+      font-size: 0.65rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .type-btn .type-emoji { font-size: 1.6rem; }
+    .type-btn.selected { border-color: var(--accent); color: var(--text); background: var(--bg3); }
+
+    .quick-form { display: flex; flex-direction: column; gap: 10px; }
+
+    .extra-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px;
+      background: var(--bg2);
+      border: 1px solid var(--bg3);
+      border-radius: var(--radius);
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      cursor: pointer;
+      width: 100%;
+    }
+    .extra-btn.active { border-color: var(--success); color: var(--success); }
+
+    .save-btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: var(--bg);
+      margin-top: 4px;
+    }
+    .save-btn:active { transform: scale(0.97); }
+
+    /* List */
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .filter-chip {
+      padding: 6px 14px;
+      background: var(--bg2);
+      border: 1px solid var(--bg3);
+      border-radius: 20px;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .filter-chip.active { border-color: var(--accent); color: var(--accent); background: var(--bg3); }
+
+    .drink-item {
+      display: flex;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg2);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      border: 1px solid var(--bg3);
+      align-items: center;
+    }
+    .drink-type-dot {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+    .drink-item-info { flex: 1; min-width: 0; }
+    .drink-item-name { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+    .drink-item-right { text-align: right; flex-shrink: 0; }
+    .drink-item-date { font-size: 0.65rem; color: var(--text-dim); }
+
+    .drink-item.expanded .drink-detail { display: block; }
+    .drink-detail { display: none; width: 100%; margin-top: 8px; }
+    .drink-detail-map { width: 100%; height: 80px; border-radius: 8px; margin-top: 6px; }
+    .drink-item-actions { display: flex; gap: 6px; margin-top: 6px; }
+    .drink-item-actions button { font-size: 0.7rem; padding: 4px 10px; border: none; border-radius: 6px; cursor: pointer; }
+    .act-del { background: transparent; color: var(--danger); }
+
+    /* Stats & Leaderboard */
+    .section-header { text-align: center; padding: 16px 0 12px; }
+    .section-header h2 { font-size: 1.2rem; color: var(--accent-light); }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--bg2);
+      border-radius: var(--radius);
+      padding: 14px;
+      text-align: center;
+      border: 1px solid var(--bg3);
+    }
+    .stat-card .sv { font-size: 1.7rem; font-weight: 700; color: var(--accent); }
+    .stat-card .sl { font-size: 0.7rem; color: var(--text-dim); margin-top: 3px; text-transform: uppercase; }
+
+    .stat-section { margin-bottom: 20px; }
+    .stat-section h3 {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-bar-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .stat-bar-label { font-size: 0.8rem; min-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-bar-track { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+    .stat-bar-fill { height: 100%; border-radius: 3px; }
+    .stat-bar-count { font-size: 0.75rem; color: var(--text-dim); min-width: 20px; text-align: right; }
+
+    .type-breakdown { display: flex; gap: 8px; margin-bottom: 20px; }
+    .type-stat {
+      flex: 1; text-align: center; padding: 10px 4px;
+      background: var(--bg2); border-radius: var(--radius); border: 1px solid var(--bg3);
+    }
+    .type-stat .ts-emoji { font-size: 1.3rem; }
+    .type-stat .ts-count { font-size: 1.2rem; font-weight: 700; margin-top: 2px; }
+    .type-stat .ts-label { font-size: 0.6rem; color: var(--text-dim); }
+
+    .timeline { display: flex; align-items: flex-end; gap: 3px; height: 80px; margin-bottom: 20px; padding: 0 2px; }
+    .timeline-bar { flex: 1; min-width: 8px; border-radius: 3px 3px 0 0; position: relative; }
+    .timeline-bar .tl-label {
+      position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+      font-size: 0.55rem; color: var(--text-dim); white-space: nowrap;
+    }
+    .timeline-wrap { margin-bottom: 30px; }
+
+    /* Leaderboard */
+    .lb-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg2);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      border: 1px solid var(--bg3);
+    }
+    .lb-rank {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .lb-rank.gold { background: #d4a03133; color: var(--accent); }
+    .lb-rank.silver { background: #c0c0c033; color: #c0c0c0; }
+    .lb-rank.bronze { background: #cd7f3233; color: #cd7f32; }
+    .lb-rank.normal { background: var(--bg3); color: var(--text-dim); }
+    .lb-info { flex: 1; }
+    .lb-name { font-size: 0.95rem; font-weight: 600; }
+    .lb-types { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
+    .lb-count { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+    .lb-today-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: var(--bg);
+      font-size: 0.6rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 8px;
+      margin-left: 6px;
+    }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-dim); }
+    .empty-state .e-icon { font-size: 3rem; margin-bottom: 10px; }
+
+    /* Settings */
+    .settings-section {
+      background: var(--bg2);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+      border: 1px solid var(--bg3);
+    }
+    .settings-section h3 { font-size: 0.85rem; color: var(--accent-light); margin-bottom: 10px; }
+    .settings-section p { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 10px; line-height: 1.4; }
+    .settings-input {
+      width: 100%; padding: 12px;
+      background: var(--bg); border: 1px solid var(--bg3); border-radius: var(--radius);
+      color: var(--text); font-size: 0.85rem; outline: none; margin-bottom: 10px;
+    }
+    .settings-input:focus { border-color: var(--accent); }
+    .settings-btn {
+      padding: 12px; border: none; border-radius: var(--radius);
+      font-size: 0.85rem; font-weight: 600; cursor: pointer; width: 100%;
+    }
+    .settings-btn:active { transform: scale(0.97); }
+    .settings-btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--bg); }
+    .settings-btn-outline { background: transparent; border: 1px solid var(--bg3); color: var(--text-dim); margin-top: 8px; }
+
+    .sync-status {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px; border-radius: var(--radius); font-size: 0.8rem; margin-bottom: 10px;
+    }
+    .sync-status.connected { background: #27ae6022; color: var(--success); border: 1px solid #27ae6044; }
+    .sync-status.disconnected { background: #c0392b22; color: #e74c3c; border: 1px solid #c0392b44; }
+    .sync-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .sync-status.connected .sync-dot { background: var(--success); }
+    .sync-status.disconnected .sync-dot { background: #e74c3c; }
+
+    .toast {
+      position: fixed; bottom: 80px; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--success); color: white;
+      padding: 10px 22px; border-radius: 30px;
+      font-size: 0.85rem; font-weight: 600;
+      transition: transform 0.3s ease;
+      z-index: 200; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- NAME MODAL -->
+<div class="name-modal hidden" id="nameModal">
+  <div class="name-modal-box">
+    <h2>Hei!</h2>
+    <p>Skriv inn navnet ditt for gjengen</p>
+    <input type="text" id="nameInput" placeholder="Ditt navn" autocomplete="off">
+    <button id="nameSubmit">Start</button>
+  </div>
+</div>
+
+<!-- QUICK ADD -->
+<div class="page active" id="page-add">
+  <div class="quick-header">
+    <h1>Drink Tracker</h1>
+    <div class="count" id="totalCount">Stay hydrated queen</div>
+    <div class="user-name" id="userName" onclick="changeName()"></div>
+  </div>
+
+  <div class="type-selector">
+    <button class="type-btn selected" data-type="beer">
+      <span class="type-emoji">&#127866;</span><span>Pils</span>
+    </button>
+    <button class="type-btn" data-type="wine">
+      <span class="type-emoji">&#127863;</span><span>Vin</span>
+    </button>
+    <button class="type-btn" data-type="cava">
+      <span class="type-emoji">&#127870;</span><span>Bobler</span>
+    </button>
+    <button class="type-btn" data-type="drink">
+      <span class="type-emoji">&#127864;</span><span>Drink</span>
+    </button>
+    <button class="type-btn" data-type="other">
+      <span class="type-emoji">&#129346;</span><span>Annet</span>
+    </button>
+  </div>
+
+  <div class="quick-form">
+    <button class="extra-btn" id="locBtn" type="button">
+      <span class="extra-icon">&#128205;</span>
+      <span id="locText">Posisjon</span>
+    </button>
+    <button class="save-btn" id="saveBtn">Registrer</button>
+  </div>
+</div>
+
+<!-- LIST -->
+<div class="page" id="page-list">
+  <div class="filter-row">
+    <span class="filter-chip active" data-filter="">Alle</span>
+    <span class="filter-chip" data-filter="beer">&#127866; Pils</span>
+    <span class="filter-chip" data-filter="wine">&#127863; Vin</span>
+    <span class="filter-chip" data-filter="cava">&#127870; Bobler</span>
+    <span class="filter-chip" data-filter="drink">&#127864; Drink</span>
+    <span class="filter-chip" data-filter="other">&#129346; Annet</span>
+  </div>
+  <div id="drinkList"></div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="page" id="page-board">
+  <div class="section-header"><h2>Leaderboard</h2></div>
+  <div id="boardContent">
+    <div class="empty-state">
+      <div class="e-icon">&#127942;</div>
+      <div>Koble til Google Sheet for leaderboard</div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div class="section-header"><h2>Innstillinger</h2></div>
+  <div class="settings-section">
+    <h3>Google Sheets Sync</h3>
+    <div class="sync-status disconnected" id="syncStatus">
+      <span class="sync-dot"></span>
+      <span id="syncStatusText">Ikke koblet til</span>
+    </div>
+    <p>Lim inn URL fra Google Apps Script. Alle i gjengen bruker samme URL.</p>
+    <input class="settings-input" type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/...">
+    <button class="settings-btn settings-btn-primary" id="saveUrlBtn">Lagre URL</button>
+    <button class="settings-btn settings-btn-outline" id="syncNowBtn">Synk nå</button>
+  </div>
+  <div class="settings-section">
+    <h3>Bruker</h3>
+    <p>Du er logget inn som:</p>
+    <input class="settings-input" type="text" id="settingsName" placeholder="Ditt navn">
+    <button class="settings-btn settings-btn-outline" id="saveNameBtn">Endre navn</button>
+  </div>
+  <div class="settings-section">
+    <h3>Data</h3>
+    <button class="settings-btn settings-btn-outline" id="exportBtn">Eksporter JSON</button>
+    <button class="settings-btn settings-btn-outline" style="color:var(--danger)" id="clearBtn">Slett all lokal data</button>
+  </div>
+</div>
+
+<!-- Tab bar -->
+<nav class="tab-bar">
+  <button class="active" data-page="add">
+    <span class="tab-icon">&#10133;</span>Logg
+  </button>
+  <button data-page="list">
+    <span class="tab-icon">&#128203;</span>Historikk
+  </button>
+  <button data-page="board">
+    <span class="tab-icon">&#127942;</span>Board
+  </button>
+  <button data-page="settings">
+    <span class="tab-icon">&#9881;</span>Sync
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ IndexedDB ============
+const DB_NAME = 'DrinkTrackerDB';
+const DB_VERSION = 1;
+const STORE = 'drinks';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE)) {
+        const store = db.createObjectStore(STORE, { keyPath: 'id' });
+        store.createIndex('date', 'date');
+        store.createIndex('type', 'type');
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getAll() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    tx.objectStore(STORE).getAll().onsuccess = e => resolve(e.target.result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function saveDrink(d) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(d);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function removeDrink(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function clearAllDrinks() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// ============ Constants ============
+const TYPE_META = {
+  beer:  { emoji: '&#127866;', label: 'Pils',   color: '#d4a031' },
+  wine:  { emoji: '&#127863;', label: 'Vin',    color: '#8b2252' },
+  cava:  { emoji: '&#127870;', label: 'Bobler', color: '#e8c468' },
+  drink: { emoji: '&#127864;', label: 'Drink',  color: '#2980b9' },
+  other: { emoji: '&#129346;', label: 'Annet',  color: '#7f8c8d' }
+};
+
+// ============ User / Name ============
+function getUserName() { return localStorage.getItem('userName') || ''; }
+function setUserName(n) { localStorage.setItem('userName', n); }
+
+function checkName() {
+  const name = getUserName();
+  if (!name) {
+    document.getElementById('nameModal').classList.remove('hidden');
+  } else {
+    document.getElementById('nameModal').classList.add('hidden');
+    document.getElementById('userName').textContent = name;
+    document.getElementById('settingsName').value = name;
+  }
+}
+
+document.getElementById('nameSubmit').addEventListener('click', () => {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) return;
+  setUserName(name);
+  checkName();
+});
+
+document.getElementById('nameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('nameSubmit').click();
+});
+
+function changeName() {
+  const name = prompt('Endre navn:', getUserName());
+  if (name && name.trim()) {
+    setUserName(name.trim());
+    checkName();
+  }
+}
+
+document.getElementById('saveNameBtn').addEventListener('click', () => {
+  const name = document.getElementById('settingsName').value.trim();
+  if (!name) return;
+  setUserName(name);
+  checkName();
+  showToast('Navn endret!');
+});
+
+// ============ State ============
+let currentType = 'beer';
+let currentLocation = null;
+let allRemoteDrinks = []; // cached leaderboard data
+
+// ============ Tab Navigation ============
+document.querySelectorAll('.tab-bar button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const page = btn.dataset.page;
+    document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-' + page).classList.add('active');
+    if (page === 'list') renderList();
+    if (page === 'board') renderLeaderboard();
+    if (page === 'settings') loadSettings();
+  });
+});
+
+// ============ Type Selector ============
+document.querySelectorAll('.type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    currentType = btn.dataset.type;
+  });
+});
+
+// ============ Location ============
+document.getElementById('locBtn').addEventListener('click', () => {
+  if (currentLocation) {
+    currentLocation = null;
+    document.getElementById('locText').textContent = 'Posisjon';
+    document.getElementById('locBtn').classList.remove('active');
+    return;
+  }
+  if (!navigator.geolocation) { showToast('GPS ikke tilgjengelig'); return; }
+  document.getElementById('locText').textContent = 'Henter...';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      currentLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      document.getElementById('locText').textContent = 'Lagret';
+      document.getElementById('locBtn').classList.add('active');
+    },
+    () => {
+      document.getElementById('locText').textContent = 'Feilet';
+      setTimeout(() => { document.getElementById('locText').textContent = 'Posisjon'; }, 2000);
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+});
+
+// ============ Save ============
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const user = getUserName();
+  if (!user) { document.getElementById('nameModal').classList.remove('hidden'); return; }
+
+  const meta = TYPE_META[currentType] || TYPE_META.other;
+  const drink = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+    name: meta.label,
+    type: currentType,
+    location: currentLocation,
+    date: new Date().toISOString(),
+    user: user,
+    synced: false
+  };
+
+  await saveDrink(drink);
+  showToast('Registrert!');
+  resetForm();
+  updateCount();
+  syncToSheet();
+});
+
+function resetForm() {
+  currentLocation = null;
+  document.getElementById('locText').textContent = 'Posisjon';
+  document.getElementById('locBtn').classList.remove('active');
+}
+
+// ============ List (own drinks only) ============
+let activeFilter = '';
+
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeFilter = chip.dataset.filter;
+    renderList();
+  });
+});
+
+async function renderList() {
+  const drinks = await getAll();
+  const user = getUserName();
+
+  let filtered = drinks.filter(d => {
+    const matchType = !activeFilter || d.type === activeFilter;
+    const matchUser = !d.user || d.user === user;
+    return matchType && matchUser;
+  });
+
+  filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const container = document.getElementById('drinkList');
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="e-icon">&#127866;</div><div>Ingen registrerte enda</div></div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(d => {
+    const meta = TYPE_META[d.type] || TYPE_META.other;
+    const dateStr = new Date(d.date).toLocaleDateString('no-NO', { day: 'numeric', month: 'short' });
+    const timeStr = new Date(d.date).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+
+    return `
+      <div class="drink-item" onclick="this.classList.toggle('expanded')">
+        <div class="drink-type-dot" style="background:${meta.color}22">${meta.emoji}</div>
+        <div class="drink-item-info">
+          <div class="drink-item-name">${meta.label}</div>
+          <div class="drink-detail">
+            <div class="drink-item-actions">
+              <button class="act-del" onclick="event.stopPropagation();delDrink('${d.id}')">Slett</button>
+            </div>
+          </div>
+        </div>
+        <div class="drink-item-right">
+          <div class="drink-item-date">${dateStr} ${timeStr}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function delDrink(id) {
+  if (!confirm('Slette?')) return;
+  await removeDrink(id);
+  showToast('Slettet');
+  renderList();
+  updateCount();
+}
+
+// ============ Leaderboard ============
+async function renderLeaderboard() {
+  const el = document.getElementById('boardContent');
+  const url = getSheetUrl();
+
+  if (!url) {
+    el.innerHTML = `<div class="empty-state"><div class="e-icon">&#127942;</div><div>Koble til Google Sheet for leaderboard</div></div>`;
+    return;
+  }
+
+  // Use cached data or fetch
+  if (allRemoteDrinks.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="e-icon">&#8987;</div><div>Henter data...</div></div>`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      allRemoteDrinks = data.drinks || [];
+    } catch (err) {
+      el.innerHTML = `<div class="empty-state"><div class="e-icon">&#9888;</div><div>Kunne ikke hente data</div></div>`;
+      return;
+    }
+  }
+
+  if (allRemoteDrinks.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="e-icon">&#127942;</div><div>Ingen drinks logget enda</div></div>`;
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Per user stats
+  const userMap = {};
+  allRemoteDrinks.forEach(d => {
+    const u = d.user || 'Ukjent';
+    if (!userMap[u]) userMap[u] = { total: 0, today: 0, types: {} };
+    userMap[u].total++;
+    if (String(d.date).slice(0, 10) === today) userMap[u].today++;
+    const t = d.type || 'other';
+    userMap[u].types[t] = (userMap[u].types[t] || 0) + 1;
+  });
+
+  const sorted = Object.entries(userMap).sort((a, b) => b[1].total - a[1].total);
+
+  // Today's leader
+  const todaySorted = Object.entries(userMap).filter(([,v]) => v.today > 0).sort((a, b) => b[1].today - a[1].today);
+  const todayLeader = todaySorted.length ? todaySorted[0][0] : null;
+
+  let html = '';
+
+  // Leaderboard
+  html += `<div class="stat-section"><h3>Totalt</h3>`;
+  sorted.forEach(([name, stats], i) => {
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : 'normal';
+    const typeEmojis = Object.entries(stats.types)
+      .sort((a, b) => b[1] - a[1])
+      .map(([t, c]) => `${(TYPE_META[t]||TYPE_META.other).emoji}${c}`)
+      .join(' ');
+    const isTodayLeader = name === todayLeader;
+
+    html += `
+      <div class="lb-item">
+        <div class="lb-rank ${rankClass}">${i + 1}</div>
+        <div class="lb-info">
+          <div class="lb-name">${esc(name)}${isTodayLeader ? '<span class="lb-today-badge">I dag</span>' : ''}</div>
+          <div class="lb-types">${typeEmojis}</div>
+        </div>
+        <div class="lb-count">${stats.total}</div>
+      </div>`;
+  });
+  html += `</div>`;
+
+  // Today stats
+  if (todaySorted.length) {
+    html += `<div class="stat-section"><h3>I dag</h3>`;
+    todaySorted.forEach(([name, stats]) => {
+      html += `
+        <div class="stat-bar-item">
+          <span class="stat-bar-label">${esc(name)}</span>
+          <div class="stat-bar-track">
+            <div class="stat-bar-fill" style="width:${(stats.today / todaySorted[0][1].today * 100)}%;background:var(--accent)"></div>
+          </div>
+          <span class="stat-bar-count">${stats.today}</span>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Type breakdown total
+  const totalTypes = {};
+  allRemoteDrinks.forEach(d => {
+    const t = d.type || 'other';
+    totalTypes[t] = (totalTypes[t] || 0) + 1;
+  });
+
+  html += `<div class="type-breakdown">`;
+  Object.entries(TYPE_META).forEach(([type, meta]) => {
+    html += `
+      <div class="type-stat">
+        <div class="ts-emoji">${meta.emoji}</div>
+        <div class="ts-count" style="color:${meta.color}">${totalTypes[type] || 0}</div>
+        <div class="ts-label">${meta.label}</div>
+      </div>`;
+  });
+  html += `</div>`;
+
+  el.innerHTML = html;
+}
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ============ Google Sheets Sync ============
+function getSheetUrl() { return localStorage.getItem('sheetUrl') || ''; }
+function setSheetUrl(url) { localStorage.setItem('sheetUrl', url); }
+
+async function syncToSheet() {
+  const url = getSheetUrl();
+  if (!url) return;
+
+  const drinks = await getAll();
+  const unsynced = drinks.filter(d => !d.synced);
+  if (unsynced.length === 0) return;
+
+  try {
+    const payload = {
+      drinks: unsynced.map(d => ({
+        id: d.id,
+        date: d.date,
+        type: d.type,
+        lat: d.location?.lat || '',
+        lng: d.location?.lng || '',
+        user: d.user || getUserName()
+      }))
+    };
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      for (const d of unsynced) {
+        d.synced = true;
+        await saveDrink(d);
+      }
+      // Clear leaderboard cache so it refreshes
+      allRemoteDrinks = [];
+    }
+  } catch (err) {
+    console.error('Sync error:', err);
+  }
+}
+
+async function syncFromSheet() {
+  const url = getSheetUrl();
+  if (!url) return;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    allRemoteDrinks = data.drinks || [];
+
+    // Import own drinks to local DB
+    const user = getUserName();
+    const local = await getAll();
+    const localIds = new Set(local.map(d => d.id));
+
+    let added = 0;
+    for (const rd of allRemoteDrinks) {
+      if (!localIds.has(String(rd.id)) && rd.user === user) {
+        await saveDrink({
+          id: rd.id,
+          date: rd.date,
+          type: rd.type,
+          name: (TYPE_META[rd.type] || TYPE_META.other).label,
+          location: (rd.lat && rd.lng) ? { lat: parseFloat(rd.lat), lng: parseFloat(rd.lng) } : null,
+          user: rd.user,
+          synced: true
+        });
+        added++;
+      }
+    }
+
+    for (const d of local) {
+      if (!d.synced) { d.synced = true; await saveDrink(d); }
+    }
+
+    updateSyncStatus(true, `Synket! ${allRemoteDrinks.length} totalt`);
+    if (added > 0) updateCount();
+  } catch (err) {
+    console.error('Sync from sheet error:', err);
+    updateSyncStatus(false, 'Henting feilet');
+  }
+}
+
+function updateSyncStatus(connected, text) {
+  const el = document.getElementById('syncStatus');
+  el.className = 'sync-status ' + (connected ? 'connected' : 'disconnected');
+  document.getElementById('syncStatusText').textContent = text || (connected ? 'Koblet til' : 'Ikke koblet til');
+}
+
+// ============ Settings ============
+function loadSettings() {
+  document.getElementById('sheetUrl').value = getSheetUrl();
+  document.getElementById('settingsName').value = getUserName();
+  updateSyncStatus(!!getSheetUrl(), getSheetUrl() ? 'Koblet til' : 'Ikke koblet til');
+}
+
+document.getElementById('saveUrlBtn').addEventListener('click', () => {
+  const url = document.getElementById('sheetUrl').value.trim();
+  setSheetUrl(url);
+  updateSyncStatus(!!url, url ? 'URL lagret' : 'URL fjernet');
+  showToast(url ? 'URL lagret!' : 'URL fjernet');
+  allRemoteDrinks = [];
+});
+
+document.getElementById('syncNowBtn').addEventListener('click', async () => {
+  if (!getSheetUrl()) { showToast('Legg inn URL forst'); return; }
+  showToast('Synker...');
+  await syncToSheet();
+  await syncFromSheet();
+  showToast('Ferdig!');
+});
+
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  const drinks = await getAll();
+  const blob = new Blob([JSON.stringify(drinks, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'drink-tracker-export.json';
+  a.click();
+});
+
+document.getElementById('clearBtn').addEventListener('click', async () => {
+  if (!confirm('Slette ALL lokal data?')) return;
+  await clearAllDrinks();
+  showToast('Data slettet');
+  updateCount();
+});
+
+// ============ Utils ============
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+async function updateCount() {
+  const drinks = await getAll();
+  const el = document.getElementById('totalCount');
+  el.textContent = drinks.length === 0
+    ? 'Stay hydrated queen'
+    : `${drinks.length} drink${drinks.length > 1 ? 's' : ''} logget`;
+}
+
+// ============ Init ============
+checkName();
+updateCount();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
